@@ -13,6 +13,7 @@
                 ExtendsContentIntoTitleBar="True"
                 WindowBackdropType="Mica"
                 WindowCornerPreference="Round"
+                Icon="pack://application:,,,/app.ico"
                 WindowStartupLocation="CenterScreen"
                 MinWidth="1024"
                 MinHeight="640"
@@ -52,7 +53,7 @@
 
         <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitle}">
             <ui:TitleBar.Icon>
-                <ui:SymbolIcon Symbol="TextGrammarWand24" FontSize="16" />
+                <ui:ImageIcon Source="pack://application:,,,/app.ico" Width="16" Height="16" />
             </ui:TitleBar.Icon>
             <ui:TitleBar.TrailingContent>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
