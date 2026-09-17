@@ -28,7 +28,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-        include-prerelease: true
 
     # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
@@ -58,8 +57,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-        include-prerelease: true
 
     # Validate that the benchmarks build and run; real measurements happen in the nightly workflow
     - name: Run benchmarks smoke test
-      run: dotnet run --project LogGrokX.Benchmarks -c Release -- --job Dry
+      run: dotnet run --project LogGrokX.Benchmarks -c Release -- --filter "*" --job Dry

@@ -3,6 +3,7 @@
 [![Run Unit tests](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml)
 [![Upload Binaries](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml)
 [![Benchmarks](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml)
+[![Release](https://github.com/zhenyatnk/LogGrokX/actions/workflows/release.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/release.yml)
 
 A fast WPF log viewer for very large log files. LogGrokX parses structured
 log lines with configurable regular expressions, builds in-memory indexes for
@@ -175,3 +176,9 @@ Settings:
 
 Build artifacts are produced by the **Upload Binaries** workflow and attached to
 the workflow run under `LogGrokX-build-<run_number>`.
+
+Tagged releases are published by the **Release** workflow, which runs on `v*`
+tags (or manually via `workflow_dispatch` with a version input). It runs the
+tests, publishes self-contained and framework-dependent builds for x64 and x86,
+builds Inno Setup installers, optionally signs them, and attaches the installers,
+portable ZIPs and `SHA256SUMS.txt` to a GitHub Release.

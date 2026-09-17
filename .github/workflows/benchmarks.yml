@@ -47,11 +47,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-        include-prerelease: true
 
     - name: Run benchmarks
       if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
-      run: dotnet run --project LogGrokX.Benchmarks -c Release -- --exporters json html
+      run: dotnet run --project LogGrokX.Benchmarks -c Release -- --filter "*" --exporters json html
 
     - name: Upload results
       if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
