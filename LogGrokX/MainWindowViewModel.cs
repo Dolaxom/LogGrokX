@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection.Metadata;
+using System.Windows;
 using System.Windows.Input;
 using LogGrokX.AvalonDockExtensions;
 using LogGrokX.Data;
@@ -65,6 +66,7 @@ namespace LogGrokX
             { 
                 OpenExternalFile(ApplicationSettings.SettingsFileName);
             });
+            OpenSupportCommand = new DelegateCommand(OpenSupport);
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
             ZoomInCommand = new DelegateCommand(() => _textZoomService.Increase());
             ZoomOutCommand = new DelegateCommand(() => _textZoomService.Decrease());
@@ -128,6 +130,8 @@ namespace LogGrokX
 
         public ICommand OpenSettings { get; }
 
+        public ICommand OpenSupportCommand { get; }
+
         public ICommand ToggleThemeCommand { get; }
 
         public ICommand ZoomInCommand { get; }
@@ -166,6 +170,14 @@ namespace LogGrokX
         private static readonly AvalonDock.Themes.Vs2013DarkTheme DarkDockTheme = new();
 
         public AvalonDock.Themes.Theme DockTheme => _themeService.IsDark ? DarkDockTheme : LightDockTheme;
+
+        private static void OpenSupport()
+        {
+            var window = new SupportWindow();
+            if (Application.Current?.MainWindow is { } owner)
+                window.Owner = owner;
+            window.ShowDialog();
+        }
 
         private void ToggleTheme()
         {

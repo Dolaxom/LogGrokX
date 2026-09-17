@@ -91,6 +91,8 @@
     <Resource Include="Fonts\JetBrainsMono-Regular.ttf" />
     <None Remove="app.ico" />
     <Resource Include="app.ico" />
+    <None Remove="app-large.png" />
+    <Resource Include="app-large.png" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="nlog.config" />
