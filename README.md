@@ -2,6 +2,7 @@
 
 [![Run Unit tests](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml)
 [![Upload Binaries](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml)
+[![Benchmarks](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml)
 
 A fast WPF log viewer for very large log files. LogGrokX parses structured
 log lines with configurable regular expressions, builds in-memory indexes for
@@ -30,6 +31,10 @@ remaining responsive even on multi-gigabyte files.
 - **Color rules** — highlight matching lines and text with rules in
   `appsettings.yaml`; colors adapt to the active theme.
 - **Marked lines** — mark interesting lines and browse them in a dedicated view.
+- **Text zoom** — scale log text with `Ctrl` + mouse wheel or `Ctrl` + `+`/`-`,
+  and reset with `Ctrl` + `0`; the size is persisted in `appsettings.yaml`.
+- **Centered navigation** — jumping to a search hit (including `F3`) or a marked
+  line centers the target row in the grid.
 - **Text transformations** — rewrite matched fragments of a line before display
   (for example Base64/JSON decoding) via `Transformations`.
 - **XOR-masked logs** — transparently de-obfuscate XOR-encoded log files.
@@ -66,6 +71,23 @@ The solution contains two test projects: `LogGrokX.Tests` and
 dotnet test
 ```
 
+## Benchmarks
+
+Micro-benchmarks for the core data layer live in `LogGrokX.Benchmarks` and are
+powered by [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet).
+
+```powershell
+dotnet run --project LogGrokX.Benchmarks -c Release
+```
+
+Pass `--list flat` to list the benchmarks, `--filter` to select a subset, or
+`--job Dry` for a quick smoke run. Reports are written to
+`BenchmarkDotNet.Artifacts/`.
+
+A smoke run executes on every push and pull request. The nightly **Benchmarks**
+workflow runs the full suite only when the branch has changed since the last
+successful run, and uploads the reports as a build artifact.
+
 ## Project layout
 
 | Project              | Description                                                       |
@@ -74,6 +96,7 @@ dotnet test
 | `LogGrokX.Data`   | Platform-agnostic core: stream loading, line parsing, indexes, search, virtualization. |
 | `LogGrokX.Tests`  | Tests for the UI layer.                                           |
 | `LogGrokX.Data.Tests` | Tests for the core data layer.                                |
+| `LogGrokX.Benchmarks` | BenchmarkDotNet benchmarks for the core data layer.          |
 
 The UI is built on [WPF-UI](https://github.com/lepoco/wpfui) (Fluent controls
 and theming) with [AvalonDock](https://github.com/Dirkster99/AvalonDock) for
@@ -111,6 +134,8 @@ Settings:
     # BigLine: prune|break
     BigLine: prune
     BigLineSize: 4096
+    # Log text size in points; adjustable from the UI (Ctrl+wheel / Ctrl+0)
+    LogFontSize: 12
 
   LogFormats:
     - Regex: ^(?<Time>\d{4}-\d{2}-\d{2}\s[^\s]+)\s+(?<Level>[^\s]+)\s+(?<Thread>[^\s]+)\s+(?<Component>[^\s]+)\s+(?<Message>.*)
