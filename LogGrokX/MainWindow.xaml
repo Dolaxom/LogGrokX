@@ -38,6 +38,10 @@
 
     <ui:FluentWindow.InputBindings>
         <KeyBinding Command="{Binding OpenFileCommand}" Gesture="CTRL+O" />
+        <KeyBinding Command="{Binding ZoomInCommand}" Gesture="CTRL+OemPlus" />
+        <KeyBinding Command="{Binding ZoomInCommand}" Gesture="CTRL+SHIFT+OemPlus" />
+        <KeyBinding Command="{Binding ZoomOutCommand}" Gesture="CTRL+OemMinus" />
+        <KeyBinding Command="{Binding ResetZoomCommand}" Gesture="CTRL+D0" />
     </ui:FluentWindow.InputBindings>
 
     <Grid>
@@ -56,6 +60,21 @@
                                ToolTip="Open log file (Ctrl+O)"
                                Command="{Binding OpenFileCommand}">
                         <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Increase text size (Ctrl+=)"
+                               Command="{Binding ZoomInCommand}">
+                        <ui:SymbolIcon Symbol="ZoomIn24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Decrease text size (Ctrl+-)"
+                               Command="{Binding ZoomOutCommand}">
+                        <ui:SymbolIcon Symbol="ZoomOut24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Reset text size (Ctrl+0)"
+                               Command="{Binding ResetZoomCommand}">
+                        <ui:SymbolIcon Symbol="ZoomFit24" FontSize="16" />
                     </ui:Button>
                     <ui:Button Appearance="Transparent"
                                ToolTip="Toggle light / dark theme"
@@ -83,11 +102,6 @@
                                ToolTip="Open settings"
                                Command="{Binding OpenSettings}">
                         <ui:SymbolIcon Symbol="Settings24" FontSize="16" />
-                    </ui:Button>
-                    <ui:Button Appearance="Transparent"
-                               ToolTip="Exit"
-                               Command="{Binding ExitCommand}">
-                        <ui:SymbolIcon Symbol="Power24" FontSize="16" />
                     </ui:Button>
                 </StackPanel>
             </ui:TitleBar.TrailingContent>

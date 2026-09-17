@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection.Metadata;
-using System.Windows;
 using System.Windows.Input;
 using LogGrokX.AvalonDockExtensions;
 using LogGrokX.Data;
@@ -24,6 +23,7 @@ namespace LogGrokX
         private readonly SavedSearchPatternStore _savedSearchPatternStore;
         private readonly UiThemeService _themeService;
         private readonly TimelinePlacementService _timelinePlacementService;
+        private readonly TextZoomService _textZoomService;
 
         public ObservableCollection<DocumentViewModel> Documents { get; }
 
@@ -45,6 +45,7 @@ namespace LogGrokX
             SavedSearchPatternStore savedSearchPatternStore,
             UiThemeService themeService,
             TimelinePlacementService timelinePlacementService,
+            TextZoomService textZoomService,
             Func<ObservableCollection<DocumentViewModel>, MarkedLinesViewModel> markedLinesViewModelFactory)
         {
             _applicationSettings = applicationSettings;
@@ -52,6 +53,7 @@ namespace LogGrokX
             _savedSearchPatternStore = savedSearchPatternStore;
             _themeService = themeService;
             _timelinePlacementService = timelinePlacementService;
+            _textZoomService = textZoomService;
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
@@ -60,6 +62,9 @@ namespace LogGrokX
                 OpenExternalFile(ApplicationSettings.SettingsFileName);
             });
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
+            ZoomInCommand = new DelegateCommand(() => _textZoomService.Increase());
+            ZoomOutCommand = new DelegateCommand(() => _textZoomService.Decrease());
+            ResetZoomCommand = new DelegateCommand(() => _textZoomService.Reset());
 
             MarkedLinesViewModel.NavigationRequested += (document, index) =>
             {
@@ -121,6 +126,12 @@ namespace LogGrokX
 
         public ICommand ToggleThemeCommand { get; }
 
+        public ICommand ZoomInCommand { get; }
+
+        public ICommand ZoomOutCommand { get; }
+
+        public ICommand ResetZoomCommand { get; }
+
         public bool IsDarkTheme => _themeService.IsDark;
 
         public string WindowTitle => $"LogGrokX {BuildInfo.Version}";
@@ -147,8 +158,6 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsDarkTheme));
             InvokePropertyChanged(nameof(DockTheme));
         }
-
-        public ICommand ExitCommand => new DelegateCommand(() => Application.Current.Shutdown());
 
         private void OpenFile()
         {

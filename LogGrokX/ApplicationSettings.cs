@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -44,10 +45,19 @@ namespace LogGrokX
                 return;
 
             ViewSettings.TimelineAtTop = isAtTop;
-            SaveTimelineAtTop(isAtTop);
+            SaveViewSettingValue("TimelineAtTop", isAtTop ? "true" : "false");
         }
 
-        private static void SaveTimelineAtTop(bool isAtTop)
+        public void SetLogFontSize(double fontSize)
+        {
+            if (Math.Abs(ViewSettings.LogFontSize - fontSize) < 0.001)
+                return;
+
+            ViewSettings.LogFontSize = fontSize;
+            SaveViewSettingValue("LogFontSize", fontSize.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static void SaveViewSettingValue(string key, string value)
         {
             try
             {
@@ -55,13 +65,12 @@ namespace LogGrokX
                     return;
 
                 var lines = File.ReadAllLines(SettingsFileName).ToList();
-                var value = isAtTop ? "true" : "false";
-                var keyRegex = new Regex(@"^(\s*)TimelineAtTop\s*:.*$");
+                var keyRegex = new Regex($@"^(\s*){Regex.Escape(key)}\s*:.*$");
                 for (var i = 0; i < lines.Count; i++)
                 {
                     var match = keyRegex.Match(lines[i]);
                     if (!match.Success) continue;
-                    lines[i] = $"{match.Groups[1].Value}TimelineAtTop: {value}";
+                    lines[i] = $"{match.Groups[1].Value}{key}: {value}";
                     File.WriteAllLines(SettingsFileName, lines);
                     return;
                 }
@@ -71,7 +80,7 @@ namespace LogGrokX
                 {
                     var match = sectionRegex.Match(lines[i]);
                     if (!match.Success) continue;
-                    lines.Insert(i + 1, $"{match.Groups[1].Value}  TimelineAtTop: {value}");
+                    lines.Insert(i + 1, $"{match.Groups[1].Value}  {key}: {value}");
                     File.WriteAllLines(SettingsFileName, lines);
                     return;
                 }

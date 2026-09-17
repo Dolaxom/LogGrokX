@@ -53,15 +53,15 @@ namespace LogGrokX.Controls
             {
                 var request = (NavigateToLineRequest) (args.NewValue);
                 SubscribersMap[request] = listView;
-                request.Navigate += i => RequestNavigate(request, i);
+                request.Navigate += (i, center) => RequestNavigate(request, i, center);
             }
         }
 
-        private static void RequestNavigate(NavigateToLineRequest request, int lineNumber)
+        private static void RequestNavigate(NavigateToLineRequest request, int lineNumber, bool center)
         {
             var listView = SubscribersMap[request];
             if (GetChangeCurrentItem(listView))
-                listView.NavigateTo(lineNumber);
+                listView.NavigateTo(lineNumber, center);
             else 
                 listView.BringIndexIntoView(lineNumber);
         }

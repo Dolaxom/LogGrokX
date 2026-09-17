@@ -305,9 +305,9 @@ namespace LogGrokX
         
         public GrowingLogLinesCollection Lines { get; }
 
-        public void NavigateTo(in int logLineNumber)
+        public void NavigateTo(in int logLineNumber, bool center = false)
         {
-            NavigateToLineRequest.Raise(_getIndexByValue(logLineNumber) + _headerCollection.Count);
+            NavigateToLineRequest.Raise(_getIndexByValue(logLineNumber) + _headerCollection.Count, center);
         }
 
         public void NavigateToScrollIndex(int scrollIndex)

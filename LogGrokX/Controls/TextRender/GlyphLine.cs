@@ -14,7 +14,7 @@ public class GlyphLine : IDisposable
     private readonly PooledList<double> _advanceWidthsForGlyph = new();
     private readonly PooledList<double> _advanceWidthForChar = new();
         
-    private static readonly ConcurrentDictionary<char, (double advanceWidth, double advanceHeight, ushort glyphIndex)> TypefaceCache = new();
+    private static readonly ConcurrentDictionary<(GlyphTypeface typeface, double fontSize, char ch), (double advanceWidth, double advanceHeight, ushort glyphIndex)> TypefaceCache = new();
 
     public Size Size { get; }
         
@@ -69,11 +69,12 @@ public class GlyphLine : IDisposable
 
         var indexOfGlyph = 0;
 
-        (double advanceWidth, double advanceHeight, ushort glyphIndex) GetGlyphParametersForChar(char ch)
+        (double advanceWidth, double advanceHeight, ushort glyphIndex) GetGlyphParametersForChar(
+            (GlyphTypeface typeface, double fontSize, char ch) key)
         {
-            typeface.CharacterToGlyphMap.TryGetValue(ch, out var glyphIndex);
-            return (typeface.AdvanceWidths[glyphIndex] * fontSize,
-                typeface.AdvanceHeights[glyphIndex] * fontSize,
+            key.typeface.CharacterToGlyphMap.TryGetValue(key.ch, out var glyphIndex);
+            return (key.typeface.AdvanceWidths[glyphIndex] * key.fontSize,
+                key.typeface.AdvanceHeights[glyphIndex] * key.fontSize,
                 glyphIndex);
         }
             
@@ -86,7 +87,7 @@ public class GlyphLine : IDisposable
                 var advanceWidthForChar = 0.0;
 
                 var spaceCount = indexOfGlyph % 8 == 0 ? 8 : (8 - indexOfGlyph % 8); 
-                (width, _, glyphIndex) = TypefaceCache.GetOrAdd(' ', GetGlyphParametersForChar);
+                (width, _, glyphIndex) = TypefaceCache.GetOrAdd((typeface, fontSize, ' '), GetGlyphParametersForChar);
                 while (spaceCount > 0)
                 {
                     _glyphIndices.Add(glyphIndex);
@@ -102,7 +103,7 @@ public class GlyphLine : IDisposable
             }
 
             double advHeight;
-            (width, advHeight, glyphIndex) = TypefaceCache.GetOrAdd(span[n], GetGlyphParametersForChar);
+            (width, advHeight, glyphIndex) = TypefaceCache.GetOrAdd((typeface, fontSize, span[n]), GetGlyphParametersForChar);
             _glyphIndices.Add(glyphIndex);
             AdvanceHeight = Math.Max(AdvanceHeight, advHeight);
             _advanceWidthsForGlyph.Add(width);

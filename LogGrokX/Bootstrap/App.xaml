@@ -15,6 +15,7 @@
             <system:Double x:Key="ContentControlFontSize">12</system:Double>
             <system:Double x:Key="DefaultIconFontSize">14</system:Double>
             <system:Double x:Key="ListViewItemMinHeight">24</system:Double>
+            <system:Double x:Key="LogFontSize">12</system:Double>
             <Style TargetType="{x:Type TextBlock}"
                    BasedOn="{StaticResource {x:Type TextBlock}}">
                 <Setter Property="FontSize" Value="12" />

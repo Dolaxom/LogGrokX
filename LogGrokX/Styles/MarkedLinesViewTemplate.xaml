@@ -38,7 +38,7 @@
                 Grid.Row="1" ItemsSource="{Binding MarkedLines}"
                 ItemContainerStyle="{StaticResource MarkedLinesItemContainerStyle}"
                 FontFamily="{StaticResource JetBrainsMono}"
-                FontSize="12"
+                FontSize="{DynamicResource LogFontSize}"
                 VirtualizingStackPanel.IsVirtualizing="True"
                 VirtualizingStackPanel.VirtualizationMode="Recycling"
                 IsSynchronizedWithCurrentItem="True"
@@ -59,7 +59,8 @@
                         <GridViewColumn>
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate DataType="markedLines:MarkedLineViewModel">
-                                    <gridView:PinControl IsChecked="{Binding IsMarked}"/>
+                                    <gridView:PinControl VerticalAlignment="Center"
+                                                         IsChecked="{Binding IsMarked}"/>
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
@@ -76,6 +77,7 @@
                                 <DataTemplate DataType="markedLines:MarkedLineViewModel">
                                     <textRender:TextView
                                         TextModel="{Binding Text.TextModel, Mode=OneWay}"
+                                        FontSize="{DynamicResource LogFontSize}"
                                         textRender:TextView.SharedFoldingState="{Binding Document.FoldingState}"
                                         Tag="{Binding
                                             RelativeSource={RelativeSource FindAncestor,
@@ -89,7 +91,9 @@
                     <GroupStyle>
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate>
-                                <TextBlock FontWeight="Bold" FontSize="12" Text="{Binding Name.Title }" />
+                                <TextBlock FontWeight="Bold"
+                                           FontSize="{DynamicResource LogFontSize}"
+                                           Text="{Binding Name.Title }" />
                             </DataTemplate>
                         </GroupStyle.HeaderTemplate>
                         <GroupStyle.ContainerStyle>

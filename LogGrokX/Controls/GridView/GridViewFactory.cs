@@ -105,6 +105,7 @@ namespace LogGrokX.Controls.GridView
         private static DataTemplate CreatePinCellTemplate()
         {
             var factory = new FrameworkElementFactory(typeof(PinControl));
+            factory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
             var binding = new Binding
             {
                 Path = new PropertyPath(nameof(LineViewModel.IsMarked)),

@@ -4,11 +4,11 @@ namespace LogGrokX.Controls
 {
     public class NavigateToLineRequest
     {
-        public event Action<int>? Navigate;
+        public event Action<int, bool>? Navigate;
 
-        public void Raise(int lineNumber)
+        public void Raise(int lineNumber, bool center = false)
         {
-            Navigate?.Invoke(lineNumber);
+            Navigate?.Invoke(lineNumber, center);
         }
     }
 }

@@ -189,6 +189,7 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
                 {
                     oldItems.Remove(foundItem);
                     itemToAdd = foundItem.Element;
+                    itemToAdd.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 }
                 else
                 {

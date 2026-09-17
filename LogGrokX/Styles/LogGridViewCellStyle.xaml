@@ -28,11 +28,13 @@
     <DataTemplate x:Key="NormalTemplate" DataType="{x:Type logGrokCore:LinePartViewModel}">
         <textRender:TextView 
             Tag="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type listControls:ListView}}}"
+            FontSize="{DynamicResource LogFontSize}"
             TextModel="{Binding TextModel, Mode=OneWay}" />
     </DataTemplate>
     <Style TargetType="{x:Type ContentControl}" x:Key="LogGridViewCellStyle">
         <Style.Setters>
             <Setter Property="ContentTemplate" Value="{StaticResource NormalTemplate}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style.Setters>
     </Style>
     <Style TargetType="{x:Type gridView:LogGridViewCell}" BasedOn="{StaticResource LogGridViewCellStyle}"/>

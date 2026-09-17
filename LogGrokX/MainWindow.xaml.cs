@@ -53,13 +53,30 @@ namespace LogGrokX
             public WindowState State { get; set; }
         }
 
+        private readonly MainWindowViewModel _viewModel;
+
         public MainWindow(MainWindowViewModel mainWindowViewModel)
         {
+            _viewModel = mainWindowViewModel;
             DataContext = mainWindowViewModel;
             Closing += OnClosing;
             Loaded += OnLoaded;
+            PreviewMouseWheel += OnPreviewMouseWheel;
 
             InitializeComponent();
+        }
+
+        private void OnPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == 0)
+                return;
+
+            if (e.Delta > 0)
+                _viewModel.ZoomInCommand.Execute(null);
+            else
+                _viewModel.ZoomOutCommand.Execute(null);
+
+            e.Handled = true;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
