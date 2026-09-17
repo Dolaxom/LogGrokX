@@ -52,6 +52,13 @@ The UI layer uses **WPF-UI 4.3.0** (Fluent controls/theming) and
 build version: `BuildInfo.Version` (release `-p:Version`, default `2.1`).
 JSON folding lives in `Controls/TextRender` (`TextView`,
 `TextViewSharedFoldingState`, `CollapsibleRegionsMachine`, `FoldingManager`).
+Thread grouping is driven by `ThreadGroupingService` (toggled from the title bar,
+persisted as `ViewSettings.GroupByThread`); group boundaries are attached
+properties (`IsGroupFirst` / `IsGroupLast` / `IsGroupContinuation`) on
+`Controls/ListControls/BaseLogListViewItem`, computed by
+`Controls/ListControls/VirtualizingStackPanel` and rendered by
+`Styles/ListViewItemStyle.xaml`. The support window is `SupportWindow.xaml` /
+`SupportViewModel` (opened through `OpenSupportCommand`).
 
 ## Conventions
 
@@ -95,6 +102,11 @@ JSON folding lives in `Controls/TextRender` (`TextView`,
   the compiler via `Win32Manifest` (overriding `ApplicationManifest` alone is not
   enough, the SDK snapshots it at evaluation). `LogGrokX.exe --version` prints
   the version and exits before WPF starts; the release workflow smoke-tests it.
+- **App icon**: `LogGrokX/app.ico` is a multi-frame icon (white glyph with a thin
+  dark outline on a transparent background) set as `ApplicationIcon` and used for
+  `Window.Icon` / the title-bar `ui:ImageIcon`. WPF decodes only the **first**
+  `.ico` frame (16×16), so for larger renders use `LogGrokX/app-large.png`
+  (256×256). Both files are `<Resource>` items.
 
 ## Verification
 

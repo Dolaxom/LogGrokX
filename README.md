@@ -35,12 +35,19 @@ remaining responsive even on multi-gigabyte files.
   and reset with `Ctrl` + `0`; the size is persisted in `appsettings.yaml`.
 - **Centered navigation** — jumping to a search hit (including `F3`) or a marked
   line centers the target row in the grid.
+- **Thread grouping** — group consecutive visible lines that share the same
+  `Thread` field, separated by subtle dividers and with the thread value dimmed
+  on continuation rows. Toggled from the title bar and persisted in
+  `appsettings.yaml`.
 - **Text transformations** — rewrite matched fragments of a line before display
   (for example Base64/JSON decoding) via `Transformations`.
 - **XOR-masked logs** — transparently de-obfuscate XOR-encoded log files.
 - **Light & dark themes** — switch theme from the title bar; chrome, log colors
   and search highlighting follow the active theme.
 - **Crash dumps** — optional Windows Error Reporting local dumps for diagnostics.
+- **Support window** — version, commit, runtime/OS info and links to releases,
+  issues and source, plus "copy diagnostics" and "open logs folder"
+  (`?` button in the title bar).
 - **Multiple documents** — dockable tabs powered by AvalonDock.
 
 ## Requirements
@@ -87,6 +94,14 @@ Pass `--list flat` to list the benchmarks, `--filter` to select a subset, or
 A smoke run executes on every push and pull request. The nightly **Benchmarks**
 workflow runs the full suite only when the branch has changed since the last
 successful run, and uploads the reports as a build artifact.
+
+## Support
+
+The **Support** window (the `?` button in the title bar) shows the application
+version, git commit and branch, .NET runtime, OS and CPU architecture. From
+there you can open the latest release, report an issue, view the source, copy
+the diagnostics block to the clipboard, or open the log folder at
+`%LOCALAPPDATA%\LogGrokX\`.
 
 ## Project layout
 
@@ -136,6 +151,8 @@ Settings:
     BigLineSize: 4096
     # Log text size in points; adjustable from the UI (Ctrl+wheel / Ctrl+0)
     LogFontSize: 12
+    # Group consecutive lines that share the same Thread field
+    GroupByThread: false
 
   LogFormats:
     - Regex: ^(?<Time>\d{4}-\d{2}-\d{2}\s[^\s]+)\s+(?<Level>[^\s]+)\s+(?<Thread>[^\s]+)\s+(?<Component>[^\s]+)\s+(?<Message>.*)
