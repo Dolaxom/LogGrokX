@@ -25,6 +25,21 @@ namespace LogGrokX
 
         public LinePartViewModel this[int index] => GetValue(index);
 
+        public ReadOnlySpan<char> GetComponentSpan(int index)
+        {
+            if (index < 0 || index >= _parseResult.ComponentCount)
+                return ReadOnlySpan<char>.Empty;
+
+            var lineMeta = _parseResult.Get().ParsedLineComponents;
+            var start = lineMeta.ComponentStart(index);
+            var length = lineMeta.ComponentLength(index);
+
+            if (start < 0 || length < 0 || start + length > _transformResult.Length)
+                return ReadOnlySpan<char>.Empty;
+
+            return _transformResult.AsSpan(start, length);
+        }
+
         private LinePartViewModel GetValue(int index)
         {
             var uniqueId = HashCode.Combine(base.Index, index);

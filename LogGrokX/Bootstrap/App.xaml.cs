@@ -84,6 +84,8 @@ namespace LogGrokX.Bootstrap
             container.Register<SavedSearchPatternStore>(Reuse.Singleton);
             container.Register<UiThemeService>(Reuse.Singleton);
             container.Register<TimelinePlacementService>(Reuse.Singleton);
+            container.Register<TextZoomService>(Reuse.Singleton);
+            container.Register<ThreadGroupingService>(Reuse.Singleton);
             container.Register<MarkedLinesViewModel>();
             container.Register<MainWindow>();
         }

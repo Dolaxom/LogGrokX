@@ -1,0 +1,131 @@
+<ui:FluentWindow x:Class="LogGrokX.SupportWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Support"
+                 Width="420"
+                 SizeToContent="Height"
+                 Icon="pack://application:,,,/app.ico"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round"
+                 WindowStartupLocation="CenterOwner"
+                 ResizeMode="NoResize"
+                 ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0"
+                     Title="Support"
+                     ShowMinimize="False"
+                     ShowMaximize="False">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/app.ico" Width="16" Height="16" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <ScrollViewer Grid.Row="1"
+                      Padding="16,4,16,16"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <ui:ImageIcon Source="pack://application:,,,/app-large.png" Width="40" Height="40" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="LogGrokX" />
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                            <Run Text="Version" />
+                            <Run Text="{Binding Version, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="Links" />
+                <ui:Button HorizontalAlignment="Stretch"
+                           HorizontalContentAlignment="Left"
+                           Command="{Binding OpenReleasesCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="16" />
+                        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Download the latest release" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Margin="0,6,0,0"
+                           HorizontalAlignment="Stretch"
+                           HorizontalContentAlignment="Left"
+                           Command="{Binding OpenIssuesCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Bug24" FontSize="16" />
+                        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Report an issue" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Margin="0,6,0,0"
+                           HorizontalAlignment="Stretch"
+                           HorizontalContentAlignment="Left"
+                           Command="{Binding OpenRepositoryCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Code24" FontSize="16" />
+                        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Source code on GitHub" />
+                    </StackPanel>
+                </ui:Button>
+
+                <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="Diagnostics" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="96" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Version"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Version, Mode=OneWay}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Commit"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Commit, Mode=OneWay}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Branch"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Branch, Mode=OneWay}" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Runtime"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RuntimeVersion, Mode=OneWay}" />
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="OS"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding OsVersion, Mode=OneWay}" />
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Architecture"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Architecture, Mode=OneWay}" />
+                </Grid>
+
+                <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                    <ui:Button Command="{Binding OpenLogsFolderCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" />
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open logs folder" />
+                        </StackPanel>
+                    </ui:Button>
+                    <ui:Button Margin="8,0,0,0" Command="{Binding CopyDiagnosticsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Copy24" FontSize="16" />
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Copy diagnostics" />
+                        </StackPanel>
+                    </ui:Button>
+                </StackPanel>
+
+                <ui:Button Margin="0,16,0,0"
+                           HorizontalAlignment="Right"
+                           Appearance="Primary"
+                           Click="OnCloseClick"
+                           Content="Close" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</ui:FluentWindow>
+

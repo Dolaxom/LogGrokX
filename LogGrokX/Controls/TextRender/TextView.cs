@@ -51,6 +51,7 @@ public class TextView : Control, IClippingRectChangesAware
     private GuideLinesControl? _guideLinesControl;
     
     private double _cachedWidth;
+    private double _cachedFontSize;
     private TextModel? _cachedTextModel;
     private bool _isCollapsibleStateDirty;
     private TextViewSharedFoldingState? _registeredFoldingState;
@@ -384,11 +385,13 @@ public class TextView : Control, IClippingRectChangesAware
         var text = TextModel;
         if (text == null) return new Size(0, 0);
 
-        if (_textLines == null || _cachedTextModel != text || _cachedWidth < constraint.Width || _isCollapsibleStateDirty)
+        if (_textLines == null || _cachedTextModel != text || _cachedWidth < constraint.Width ||
+            _isCollapsibleStateDirty || Math.Abs(_cachedFontSize - FontSize) > 0.001)
         { 
             ResetText();
             _textLines = CreateTextLines(text, constraint.Width);
             _cachedWidth = constraint.Width;
+            _cachedFontSize = FontSize;
             _cachedTextModel = text;
             _isCollapsibleStateDirty = false;
 

@@ -22,6 +22,7 @@ dotnet restore
 dotnet build LogGrokX.sln
 dotnet test LogGrokX.sln
 dotnet run --project LogGrokX\LogGrokX.csproj
+dotnet run --project LogGrokX.Benchmarks -c Release
 dotnet format LogGrokX.sln
 ```
 
@@ -40,6 +41,7 @@ dotnet format LogGrokX.sln
 | `LogGrokX.Data` | UI-agnostic core: stream loading, line parsing, indexes, search, virtualization. |
 | `LogGrokX.Tests` | Tests for the UI layer. |
 | `LogGrokX.Data.Tests` | Tests for the core data layer. |
+| `LogGrokX.Benchmarks` | BenchmarkDotNet benchmarks for the core data layer. |
 
 Key areas in `LogGrokX.Data`: `Loader`/`LoaderImpl` (buffered line-aware
 reader), `RegexBasedLineParser`, `IndexTree`/`LineIndex`/`SearchLineIndex`,

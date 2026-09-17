@@ -2,6 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:logGrokCore="clr-namespace:LogGrokX"
                     xmlns:controls="clr-namespace:LogGrokX.Controls"
+                    xmlns:listControls="clr-namespace:LogGrokX.Controls.ListControls"
                     xmlns:markedLines="clr-namespace:LogGrokX.MarkedLines"
                     xmlns:gridView="clr-namespace:LogGrokX.Controls.GridView">
     <controls:ObjectToTypeConverter x:Key="ObjectToTypeConverter" />
@@ -27,7 +28,29 @@
                                   VerticalAlignment="Stretch"
                                   Columns="{TemplateBinding GridView.ColumnCollection}"
                                   Content="{TemplateBinding Content}" />
+            <Border x:Name="GroupTopSeparator"
+                    Height="1"
+                    VerticalAlignment="Top"
+                    Background="{TemplateBinding Foreground}"
+                    Opacity="0.10"
+                    Visibility="Collapsed"
+                    SnapsToDevicePixels="True" />
+            <Border x:Name="GroupBottomSeparator"
+                    Height="1"
+                    VerticalAlignment="Bottom"
+                    Background="{TemplateBinding Foreground}"
+                    Opacity="0.10"
+                    Visibility="Collapsed"
+                    SnapsToDevicePixels="True" />
         </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="listControls:BaseLogListViewItem.IsGroupFirst" Value="True">
+                <Setter TargetName="GroupTopSeparator" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="listControls:BaseLogListViewItem.IsGroupLast" Value="True">
+                <Setter TargetName="GroupBottomSeparator" Property="Visibility" Value="Visible" />
+            </Trigger>
+        </ControlTemplate.Triggers>
     </ControlTemplate>
 
     <ControlTemplate x:Key="LogHeaderControlTemplate" TargetType="{x:Type ListBoxItem}">

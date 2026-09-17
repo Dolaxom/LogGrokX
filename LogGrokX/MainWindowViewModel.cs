@@ -24,6 +24,8 @@ namespace LogGrokX
         private readonly SavedSearchPatternStore _savedSearchPatternStore;
         private readonly UiThemeService _themeService;
         private readonly TimelinePlacementService _timelinePlacementService;
+        private readonly TextZoomService _textZoomService;
+        private readonly ThreadGroupingService _threadGroupingService;
 
         public ObservableCollection<DocumentViewModel> Documents { get; }
 
@@ -45,6 +47,8 @@ namespace LogGrokX
             SavedSearchPatternStore savedSearchPatternStore,
             UiThemeService themeService,
             TimelinePlacementService timelinePlacementService,
+            TextZoomService textZoomService,
+            ThreadGroupingService threadGroupingService,
             Func<ObservableCollection<DocumentViewModel>, MarkedLinesViewModel> markedLinesViewModelFactory)
         {
             _applicationSettings = applicationSettings;
@@ -52,14 +56,21 @@ namespace LogGrokX
             _savedSearchPatternStore = savedSearchPatternStore;
             _themeService = themeService;
             _timelinePlacementService = timelinePlacementService;
+            _textZoomService = textZoomService;
+            _threadGroupingService = threadGroupingService;
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
+            _threadGroupingService.Changed += OnThreadGroupingChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
             OpenSettings = new DelegateCommand(() =>
             { 
                 OpenExternalFile(ApplicationSettings.SettingsFileName);
             });
+            OpenSupportCommand = new DelegateCommand(OpenSupport);
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
+            ZoomInCommand = new DelegateCommand(() => _textZoomService.Increase());
+            ZoomOutCommand = new DelegateCommand(() => _textZoomService.Decrease());
+            ResetZoomCommand = new DelegateCommand(() => _textZoomService.Reset());
 
             MarkedLinesViewModel.NavigationRequested += (document, index) =>
             {
@@ -119,7 +130,15 @@ namespace LogGrokX
 
         public ICommand OpenSettings { get; }
 
+        public ICommand OpenSupportCommand { get; }
+
         public ICommand ToggleThemeCommand { get; }
+
+        public ICommand ZoomInCommand { get; }
+
+        public ICommand ZoomOutCommand { get; }
+
+        public ICommand ResetZoomCommand { get; }
 
         public bool IsDarkTheme => _themeService.IsDark;
 
@@ -136,10 +155,29 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsTimelineAtTop));
         }
 
+        public bool IsGroupByThread
+        {
+            get => _threadGroupingService.IsEnabled;
+            set => _threadGroupingService.SetEnabled(value);
+        }
+
+        private void OnThreadGroupingChanged()
+        {
+            InvokePropertyChanged(nameof(IsGroupByThread));
+        }
+
         private static readonly AvalonDock.Themes.Vs2013LightTheme LightDockTheme = new();
         private static readonly AvalonDock.Themes.Vs2013DarkTheme DarkDockTheme = new();
 
         public AvalonDock.Themes.Theme DockTheme => _themeService.IsDark ? DarkDockTheme : LightDockTheme;
+
+        private static void OpenSupport()
+        {
+            var window = new SupportWindow();
+            if (Application.Current?.MainWindow is { } owner)
+                window.Owner = owner;
+            window.ShowDialog();
+        }
 
         private void ToggleTheme()
         {
@@ -147,8 +185,6 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsDarkTheme));
             InvokePropertyChanged(nameof(DockTheme));
         }
-
-        public ICommand ExitCommand => new DelegateCommand(() => Application.Current.Shutdown());
 
         private void OpenFile()
         {
@@ -190,7 +226,7 @@ namespace LogGrokX
 
         private DocumentViewModel CreateDocument(string fileName)
         {
-            var container = new DocumentContainer(fileName, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService);
+            var container = new DocumentContainer(fileName, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService, _threadGroupingService);
             var viewModel = container.GetDocumentViewModel();
             Documents.Add(viewModel);
             Documents.CollectionChanged += (o, e) =>

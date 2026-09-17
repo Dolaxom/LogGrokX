@@ -92,7 +92,7 @@ namespace LogGrokX
 
         public void NavigateTo(int lineNumber)
         {
-            LogViewModel.NavigateTo(lineNumber);
+            LogViewModel.NavigateTo(lineNumber, true);
         }
 
         private void OnSearchViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

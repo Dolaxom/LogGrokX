@@ -31,7 +31,7 @@ namespace LogGrokX
         private readonly Container _container;
         public DocumentContainer(string fileName, ApplicationSettings applicationSettings,
             SearchAutocompleteCache autocompleteCache, SavedSearchPatternStore savedSearchPatternStore,
-            TimelinePlacementService timelinePlacementService)
+            TimelinePlacementService timelinePlacementService, ThreadGroupingService threadGroupingService)
         {
             _container = new Container(rules =>
                 rules
@@ -44,6 +44,7 @@ namespace LogGrokX
             _container.RegisterInstance(autocompleteCache);
             _container.RegisterInstance(savedSearchPatternStore);
             _container.RegisterInstance(timelinePlacementService);
+            _container.RegisterInstance(threadGroupingService);
             _container.Register<StringPool>(Reuse.Singleton);
             _container.Register<LogModelFacade>(
                 made: Parameters.Of.Type<ILineParser>(serviceKey: ParserType.Full));

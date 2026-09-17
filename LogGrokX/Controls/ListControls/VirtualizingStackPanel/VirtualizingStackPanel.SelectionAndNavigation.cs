@@ -164,13 +164,21 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             }
         }
 
-        public void NavigateTo(int index)
+        public void NavigateTo(int index, bool center = false)
         {
             _selection.Clear();
             CurrentPosition = index;
             _selection.Add(index);
-            BringIndexIntoView(CurrentPosition);
+            if (center)
+                CenterIndexInView(index);
+            else
+                BringIndexIntoView(CurrentPosition);
             UpdateSelection();
+        }
+
+        private void CenterIndexInView(int index)
+        {
+            SetVerticalOffset(index - _viewPort.Height / 2.0);
         }
 
         private void NavigateUp()

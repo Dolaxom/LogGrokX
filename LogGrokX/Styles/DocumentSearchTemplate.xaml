@@ -44,6 +44,7 @@
                                ItemContainerStyle="{StaticResource ItemContainerStyle}"
                                ItemsSource="{Binding Lines}"
                                FontFamily="{StaticResource JetBrainsMono}"
+                               FontSize="{DynamicResource LogFontSize}"
                                View="{Binding CustomView}"
                                VirtualizingStackPanel.IsVirtualizing="True"
                                VirtualizingStackPanel.VirtualizationMode="Recycling"

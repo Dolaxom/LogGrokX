@@ -126,7 +126,7 @@
                                         "{Binding NavigateToLineRequest}"
                                     localControls:NavigateToLineBehavior.ChangeCurrentItem="True"
                                     FontFamily="{StaticResource JetBrainsMono}"
-                                    FontSize="12"
+                                    FontSize="{DynamicResource LogFontSize}"
                                     ColumnSettings="{Binding ColumnSettings}"
                                     textRender:TextView.SharedFoldingState="{Binding FoldingState}"
                                     x:Name="ItemsListView">
@@ -135,6 +135,8 @@
                         <virtualizingStackPanel1:VirtualizingStackPanel
                             CurrentPosition="{Binding CurrentItemIndex}" 
                             FirstVisibleIndex="{Binding FirstVisibleIndex}"
+                            GroupByThread="{Binding GroupByThread}"
+                            ThreadFieldIndex="{Binding ThreadFieldIndex}"
                             textRender:TextView.HighlightRegex="{Binding HighlightRegex}"
                             Tag="{Binding 
                                 RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type listControls:ListView}}}"

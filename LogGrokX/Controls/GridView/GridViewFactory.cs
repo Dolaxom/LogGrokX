@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using LogGrokX.Controls.ListControls;
 using LogGrokX.Data;
 using LogGrokX.Filter;
 
@@ -11,6 +12,8 @@ namespace LogGrokX.Controls.GridView
 {
     public class GridViewFactory
     {
+        private const string ThreadFieldName = "Thread";
+
         private readonly LogMetaInformation _meta;
         private readonly Func<string, FilterViewModel>? _filterViewModelFactory;
         public GridViewFactory(LogMetaInformation meta, 
@@ -84,6 +87,16 @@ namespace LogGrokX.Controls.GridView
                         Mode = BindingMode.OneWay
                     };
                     frameworkElementFactory.SetBinding(ContentControl.ContentProperty, binding);
+                    if (fieldHeader == ThreadFieldName)
+                    {
+                        var opacityBinding = new Binding
+                        {
+                            Path = new PropertyPath(BaseLogListViewItem.IsGroupContinuationProperty),
+                            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(ListViewItem), 1),
+                            Converter = new GroupContinuationToOpacityConverter()
+                        };
+                        frameworkElementFactory.SetBinding(UIElement.OpacityProperty, opacityBinding);
+                    }
                     var dataTemplate = new DataTemplate(typeof(DependencyObject))
                     {
                         VisualTree = frameworkElementFactory
@@ -105,6 +118,7 @@ namespace LogGrokX.Controls.GridView
         private static DataTemplate CreatePinCellTemplate()
         {
             var factory = new FrameworkElementFactory(typeof(PinControl));
+            factory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
             var binding = new Binding
             {
                 Path = new PropertyPath(nameof(LineViewModel.IsMarked)),

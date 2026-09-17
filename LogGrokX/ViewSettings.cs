@@ -13,5 +13,9 @@ namespace LogGrokX
         public int BigLineSize { get; set; } = 9728;
 
         public bool TimelineAtTop { get; set; }
+
+        public double LogFontSize { get; set; } = 12;
+
+        public bool GroupByThread { get; set; }
     }
 }

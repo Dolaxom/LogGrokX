@@ -8,3 +8,4 @@
 /publish/
 /artifacts/
 /installer/publish*/
+BenchmarkDotNet.Artifacts/

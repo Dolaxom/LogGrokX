@@ -13,6 +13,7 @@
                 ExtendsContentIntoTitleBar="True"
                 WindowBackdropType="Mica"
                 WindowCornerPreference="Round"
+                Icon="pack://application:,,,/app.ico"
                 WindowStartupLocation="CenterScreen"
                 MinWidth="1024"
                 MinHeight="640"
@@ -38,6 +39,10 @@
 
     <ui:FluentWindow.InputBindings>
         <KeyBinding Command="{Binding OpenFileCommand}" Gesture="CTRL+O" />
+        <KeyBinding Command="{Binding ZoomInCommand}" Gesture="CTRL+OemPlus" />
+        <KeyBinding Command="{Binding ZoomInCommand}" Gesture="CTRL+SHIFT+OemPlus" />
+        <KeyBinding Command="{Binding ZoomOutCommand}" Gesture="CTRL+OemMinus" />
+        <KeyBinding Command="{Binding ResetZoomCommand}" Gesture="CTRL+D0" />
     </ui:FluentWindow.InputBindings>
 
     <Grid>
@@ -48,7 +53,7 @@
 
         <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitle}">
             <ui:TitleBar.Icon>
-                <ui:SymbolIcon Symbol="TextGrammarWand24" FontSize="16" />
+                <ui:ImageIcon Source="pack://application:,,,/app.ico" Width="16" Height="16" />
             </ui:TitleBar.Icon>
             <ui:TitleBar.TrailingContent>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -56,6 +61,21 @@
                                ToolTip="Open log file (Ctrl+O)"
                                Command="{Binding OpenFileCommand}">
                         <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Increase text size (Ctrl+=)"
+                               Command="{Binding ZoomInCommand}">
+                        <ui:SymbolIcon Symbol="ZoomIn24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Decrease text size (Ctrl+-)"
+                               Command="{Binding ZoomOutCommand}">
+                        <ui:SymbolIcon Symbol="ZoomOut24" FontSize="16" />
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Reset text size (Ctrl+0)"
+                               Command="{Binding ResetZoomCommand}">
+                        <ui:SymbolIcon Symbol="ZoomFit24" FontSize="16" />
                     </ui:Button>
                     <ui:Button Appearance="Transparent"
                                ToolTip="Toggle light / dark theme"
@@ -79,15 +99,21 @@
                                   ToolTip="Place the timeline at the top">
                         <ui:SymbolIcon Symbol="ArrowSort24" FontSize="16" />
                     </ToggleButton>
+                    <ToggleButton Margin="4,0"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding IsGroupByThread, Mode=TwoWay}"
+                                  ToolTip="Group consecutive lines by thread">
+                        <ui:SymbolIcon Symbol="GroupList24" FontSize="16" />
+                    </ToggleButton>
+                    <ui:Button Appearance="Transparent"
+                               ToolTip="Support"
+                               Command="{Binding OpenSupportCommand}">
+                        <ui:SymbolIcon Symbol="QuestionCircle24" FontSize="16" />
+                    </ui:Button>
                     <ui:Button Appearance="Transparent"
                                ToolTip="Open settings"
                                Command="{Binding OpenSettings}">
                         <ui:SymbolIcon Symbol="Settings24" FontSize="16" />
-                    </ui:Button>
-                    <ui:Button Appearance="Transparent"
-                               ToolTip="Exit"
-                               Command="{Binding ExitCommand}">
-                        <ui:SymbolIcon Symbol="Power24" FontSize="16" />
                     </ui:Button>
                 </StackPanel>
             </ui:TitleBar.TrailingContent>

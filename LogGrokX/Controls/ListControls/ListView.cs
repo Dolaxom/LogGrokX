@@ -82,9 +82,9 @@ namespace LogGrokX.Controls.ListControls
             set => SetValue(ReadonlySelectedItemsProperty, value);
         }
 
-        public void NavigateTo(int lineNumber)
+        public void NavigateTo(int lineNumber, bool center = false)
         {
-            GetPanel()?.NavigateTo(lineNumber);
+            GetPanel()?.NavigateTo(lineNumber, center);
         }
 
         public void BringIndexIntoView(in int lineNumber)
