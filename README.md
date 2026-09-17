@@ -1,5 +1,6 @@
 # LogGrokX
 
+[![Latest release](https://img.shields.io/github/v/release/zhenyatnk/LogGrokX)](https://github.com/zhenyatnk/LogGrokX/releases/latest)
 [![Run Unit tests](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml)
 [![Upload Binaries](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml)
 [![Benchmarks](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml)
