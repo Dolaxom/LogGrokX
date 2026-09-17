@@ -57,6 +57,15 @@ namespace LogGrokX
             SaveViewSettingValue("LogFontSize", fontSize.ToString(CultureInfo.InvariantCulture));
         }
 
+        public void SetGroupByThread(bool groupByThread)
+        {
+            if (ViewSettings.GroupByThread == groupByThread)
+                return;
+
+            ViewSettings.GroupByThread = groupByThread;
+            SaveViewSettingValue("GroupByThread", groupByThread ? "true" : "false");
+        }
+
         private static void SaveViewSettingValue(string key, string value)
         {
             try

@@ -30,6 +30,8 @@ namespace LogGrokX
         private readonly FilterSettings _filterSettings;
         private readonly Selection _markedLines;
         private readonly TimelinePlacementService _timelinePlacementService;
+        private readonly ThreadGroupingService _threadGroupingService;
+        private readonly int _threadFieldIndex;
         private int _currentItemIndex;
         private readonly IReadOnlyList<ItemViewModel> _headerCollection;
 
@@ -42,6 +44,7 @@ namespace LogGrokX
             TimeRangeFilterViewModel timeRangeFilter,
             Selection markedLines,
             TimelinePlacementService timelinePlacementService,
+            ThreadGroupingService threadGroupingService,
             TextViewSharedFoldingState foldingState)
         {
             _logModelFacade = logModelFacade;
@@ -50,7 +53,10 @@ namespace LogGrokX
             TimeRangeFilter = timeRangeFilter;
             _markedLines = markedLines;
             _timelinePlacementService = timelinePlacementService;
+            _threadGroupingService = threadGroupingService;
+            _threadFieldIndex = Array.IndexOf(logModelFacade.MetaInformation.FieldNames, "Thread");
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
+            _threadGroupingService.Changed += OnThreadGroupingChanged;
             
             var lineProvider = _logModelFacade.LineProvider;
             var lineParser = _logModelFacade.LineParser;
@@ -191,7 +197,17 @@ namespace LogGrokX
 
         private void OnTimelinePlacementChanged() => InvokePropertyChanged(nameof(TimelineDock));
 
-        public void Dispose() => _timelinePlacementService.Changed -= OnTimelinePlacementChanged;
+        public bool GroupByThread => _threadGroupingService.IsEnabled;
+
+        public int ThreadFieldIndex => _threadFieldIndex;
+
+        private void OnThreadGroupingChanged() => InvokePropertyChanged(nameof(GroupByThread));
+
+        public void Dispose()
+        {
+            _timelinePlacementService.Changed -= OnTimelinePlacementChanged;
+            _threadGroupingService.Changed -= OnThreadGroupingChanged;
+        }
 
         public bool HaveExclusions => _filterSettings.HaveExclusions;
 

@@ -135,6 +135,8 @@
                         <virtualizingStackPanel1:VirtualizingStackPanel
                             CurrentPosition="{Binding CurrentItemIndex}" 
                             FirstVisibleIndex="{Binding FirstVisibleIndex}"
+                            GroupByThread="{Binding GroupByThread}"
+                            ThreadFieldIndex="{Binding ThreadFieldIndex}"
                             textRender:TextView.HighlightRegex="{Binding HighlightRegex}"
                             Tag="{Binding 
                                 RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type listControls:ListView}}}"

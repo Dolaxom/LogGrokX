@@ -38,6 +38,8 @@ Settings:
     TimelineAtTop: false
     # Log text font size (Ctrl+= / Ctrl+- / Ctrl+0 or Ctrl+mouse wheel)
     LogFontSize: 12
+    # Group consecutive log lines with the same Thread field
+    GroupByThread: false
   LogFormats:
     - Regex: ^(?<Time>\d{4}-\d{2}-\d{2}\s[^\s]+)\s+(?<Level>[^\s]+)\s+(?<Thread>[^\s]+)\s+(?<Component>[^\s]+)\s+(?<Message>.*)
       IndexedFields:

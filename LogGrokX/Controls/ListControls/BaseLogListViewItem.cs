@@ -114,6 +114,27 @@ namespace LogGrokX.Controls.ListControls
             remove => RemoveHandler(ItemActivatedEvent, value);
         }
 
+        public static readonly DependencyProperty IsGroupFirstProperty = DependencyProperty.RegisterAttached(
+            "IsGroupFirst", typeof(bool), typeof(BaseLogListViewItem), new PropertyMetadata(false));
+
+        public static void SetIsGroupFirst(DependencyObject element, bool value) => element.SetValue(IsGroupFirstProperty, value);
+
+        public static bool GetIsGroupFirst(DependencyObject element) => (bool)element.GetValue(IsGroupFirstProperty);
+
+        public static readonly DependencyProperty IsGroupLastProperty = DependencyProperty.RegisterAttached(
+            "IsGroupLast", typeof(bool), typeof(BaseLogListViewItem), new PropertyMetadata(false));
+
+        public static void SetIsGroupLast(DependencyObject element, bool value) => element.SetValue(IsGroupLastProperty, value);
+
+        public static bool GetIsGroupLast(DependencyObject element) => (bool)element.GetValue(IsGroupLastProperty);
+
+        public static readonly DependencyProperty IsGroupContinuationProperty = DependencyProperty.RegisterAttached(
+            "IsGroupContinuation", typeof(bool), typeof(BaseLogListViewItem), new PropertyMetadata(false));
+
+        public static void SetIsGroupContinuation(DependencyObject element, bool value) => element.SetValue(IsGroupContinuationProperty, value);
+
+        public static bool GetIsGroupContinuation(DependencyObject element) => (bool)element.GetValue(IsGroupContinuationProperty);
+
         public static readonly DependencyProperty IsCurrentItemProperty = DependencyProperty.Register(
             "IsCurrentItem", typeof(bool), typeof(BaseLogListViewItem), 
             new PropertyMetadata(false));

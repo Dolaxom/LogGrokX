@@ -16,6 +16,14 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             "FirstVisibleIndex", typeof(int), typeof(VirtualizingStackPanel),
             new FrameworkPropertyMetadata(-1, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+        public static readonly DependencyProperty GroupByThreadProperty = DependencyProperty.Register(
+            "GroupByThread", typeof(bool), typeof(VirtualizingStackPanel),
+            new FrameworkPropertyMetadata(false, OnGroupingChanged));
+
+        public static readonly DependencyProperty ThreadFieldIndexProperty = DependencyProperty.Register(
+            "ThreadFieldIndex", typeof(int), typeof(VirtualizingStackPanel),
+            new FrameworkPropertyMetadata(-1, OnGroupingChanged));
+
         private List<VisibleItem> _visibleItems = new();
         private readonly Stack<ListViewItem> _recycled = new();
 
@@ -98,6 +106,24 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             get => (int)GetValue(FirstVisibleIndexProperty);
             set => SetValue(FirstVisibleIndexProperty, value);
         }
+
+        public bool GroupByThread
+        {
+            get => (bool)GetValue(GroupByThreadProperty);
+            set => SetValue(GroupByThreadProperty, value);
+        }
+
+        public int ThreadFieldIndex
+        {
+            get => (int)GetValue(ThreadFieldIndexProperty);
+            set => SetValue(ThreadFieldIndexProperty, value);
+        }
+
+        private static void OnGroupingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is VirtualizingStackPanel panel)
+                panel.InvalidateMeasure();
+        }
       
         protected override Size ArrangeOverride(Size finalSize)
         {
@@ -151,8 +177,43 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
 
             _visibleItems = newVisibleItems;
 
+            UpdateGroupFlags();
+
             RecycleItems(itemsToRecycle);
             UpdateSelection();
+        }
+
+        private void UpdateGroupFlags()
+        {
+            foreach (var visibleItem in _visibleItems)
+                UpdateGroupFlags(visibleItem.Element, visibleItem.Index);
+        }
+
+        private void UpdateGroupFlags(ListViewItem element, int index)
+        {
+            var isGroupFirst = false;
+            var isGroupLast = false;
+            var isGroupContinuation = false;
+
+            if (GroupByThread && ThreadFieldIndex >= 0 && Items[index] is LineViewModel line)
+            {
+                isGroupFirst = index == 0 || !HasSameThread(Items[index - 1] as LineViewModel, line);
+                isGroupLast = index == Items.Count - 1;
+                isGroupContinuation = !isGroupFirst;
+            }
+
+            BaseLogListViewItem.SetIsGroupFirst(element, isGroupFirst);
+            BaseLogListViewItem.SetIsGroupLast(element, isGroupLast);
+            BaseLogListViewItem.SetIsGroupContinuation(element, isGroupContinuation);
+        }
+
+        private bool HasSameThread(LineViewModel? other, LineViewModel current)
+        {
+            if (other == null)
+                return false;
+
+            return other.GetComponentSpan(ThreadFieldIndex)
+                .SequenceEqual(current.GetComponentSpan(ThreadFieldIndex));
         }
 
         private void RecycleItems(IEnumerable<VisibleItem> itemsToRecycle)

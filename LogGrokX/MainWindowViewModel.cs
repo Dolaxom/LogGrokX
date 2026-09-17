@@ -24,6 +24,7 @@ namespace LogGrokX
         private readonly UiThemeService _themeService;
         private readonly TimelinePlacementService _timelinePlacementService;
         private readonly TextZoomService _textZoomService;
+        private readonly ThreadGroupingService _threadGroupingService;
 
         public ObservableCollection<DocumentViewModel> Documents { get; }
 
@@ -46,6 +47,7 @@ namespace LogGrokX
             UiThemeService themeService,
             TimelinePlacementService timelinePlacementService,
             TextZoomService textZoomService,
+            ThreadGroupingService threadGroupingService,
             Func<ObservableCollection<DocumentViewModel>, MarkedLinesViewModel> markedLinesViewModelFactory)
         {
             _applicationSettings = applicationSettings;
@@ -54,7 +56,9 @@ namespace LogGrokX
             _themeService = themeService;
             _timelinePlacementService = timelinePlacementService;
             _textZoomService = textZoomService;
+            _threadGroupingService = threadGroupingService;
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
+            _threadGroupingService.Changed += OnThreadGroupingChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
             OpenSettings = new DelegateCommand(() =>
@@ -147,6 +151,17 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsTimelineAtTop));
         }
 
+        public bool IsGroupByThread
+        {
+            get => _threadGroupingService.IsEnabled;
+            set => _threadGroupingService.SetEnabled(value);
+        }
+
+        private void OnThreadGroupingChanged()
+        {
+            InvokePropertyChanged(nameof(IsGroupByThread));
+        }
+
         private static readonly AvalonDock.Themes.Vs2013LightTheme LightDockTheme = new();
         private static readonly AvalonDock.Themes.Vs2013DarkTheme DarkDockTheme = new();
 
@@ -199,7 +214,7 @@ namespace LogGrokX
 
         private DocumentViewModel CreateDocument(string fileName)
         {
-            var container = new DocumentContainer(fileName, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService);
+            var container = new DocumentContainer(fileName, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService, _threadGroupingService);
             var viewModel = container.GetDocumentViewModel();
             Documents.Add(viewModel);
             Documents.CollectionChanged += (o, e) =>

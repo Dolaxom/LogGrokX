@@ -98,6 +98,12 @@
                                   ToolTip="Place the timeline at the top">
                         <ui:SymbolIcon Symbol="ArrowSort24" FontSize="16" />
                     </ToggleButton>
+                    <ToggleButton Margin="4,0"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding IsGroupByThread, Mode=TwoWay}"
+                                  ToolTip="Group consecutive lines by thread">
+                        <ui:SymbolIcon Symbol="GroupList24" FontSize="16" />
+                    </ToggleButton>
                     <ui:Button Appearance="Transparent"
                                ToolTip="Open settings"
                                Command="{Binding OpenSettings}">
