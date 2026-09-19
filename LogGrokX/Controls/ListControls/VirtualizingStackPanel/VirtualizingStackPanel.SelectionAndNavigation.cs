@@ -179,6 +179,20 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
         private void CenterIndexInView(int index)
         {
             SetVerticalOffset(index - _viewPort.Height / 2.0);
+            UpdateLayout();
+
+            var target = _visibleItems.Search(v => v.Index == index);
+            if (target == null)
+                return;
+
+            var targetCenter = (target.Value.UpperBound + target.Value.LowerBound) / 2.0;
+            var viewportCenter = _viewPortHeightInPixels / 2.0;
+            var delta = targetCenter - viewportCenter;
+
+            if (Greater(delta, 0.0))
+                ScrollDown(delta);
+            else if (Less(delta, 0.0))
+                ScrollUp(-delta);
         }
 
         private void NavigateUp()
