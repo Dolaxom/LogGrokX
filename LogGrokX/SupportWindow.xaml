@@ -7,7 +7,7 @@
                  SizeToContent="Height"
                  Icon="pack://application:,,,/app.ico"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica"
+                 WindowBackdropType="None"
                  WindowCornerPreference="Round"
                  WindowStartupLocation="CenterOwner"
                  ResizeMode="NoResize"

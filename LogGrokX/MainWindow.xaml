@@ -11,7 +11,7 @@
                 localControls:DragnDropBehavior.AllowDrop="True"
                 localControls:DragnDropBehavior.DropCommand="{Binding DropCommand}"
                 ExtendsContentIntoTitleBar="True"
-                WindowBackdropType="Mica"
+                WindowBackdropType="None"
                 WindowCornerPreference="Round"
                 Icon="pack://application:,,,/app.ico"
                 WindowStartupLocation="CenterScreen"

@@ -34,7 +34,7 @@ namespace LogGrokX.Theming
 
                 ApplicationThemeManager.Apply(
                     isDark ? ApplicationTheme.Dark : ApplicationTheme.Light,
-                    WindowBackdropType.Mica,
+                    WindowBackdropType.None,
                     true);
 
                 CurrentTheme = themeName;
