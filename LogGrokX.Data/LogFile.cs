@@ -15,7 +15,8 @@ namespace LogGrokX.Data
         {
             _xorMask = xorMask;
             FilePath = filePath;
-            FileSize = OpenFileForSequentialRead(FilePath).Length;
+            using (var stream = OpenFileForSequentialRead(FilePath))
+                FileSize = stream.Length;
             _encoding= new Lazy<Encoding>(DetectEncoding);
         }
 
@@ -31,15 +32,17 @@ namespace LogGrokX.Data
 
         private readonly Encoding[] _unicodeEncodings = new[]
         {
-            Encoding.Unicode, Encoding.BigEndianUnicode, Encoding.UTF8,
-            Encoding.UTF32
+            Encoding.UTF32, Encoding.UTF8, Encoding.Unicode,
+            Encoding.BigEndianUnicode
         };
 
         private Encoding DetectEncoding()
         {
             var buffer = new byte[8192];
-            var length = OpenForSequentialRead().Read(buffer, 0, buffer.Length);
-            var span = buffer.AsSpan(length);
+            int length;
+            using (var stream = OpenForSequentialRead())
+                length = stream.Read(buffer, 0, buffer.Length);
+            var span = buffer.AsSpan(0, length);
 
             // try to find BOM
             foreach (var unicodeEncoding in _unicodeEncodings)

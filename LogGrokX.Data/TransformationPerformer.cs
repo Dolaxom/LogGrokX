@@ -2,10 +2,8 @@
 using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace LogGrokX.Data
@@ -54,8 +52,6 @@ namespace LogGrokX.Data
                 return transformName switch
                 {
                     "Base64Decode" => Base64Decode(input),
-                    // "Base64DecodeFormatJson" => FormatJsonText(Base64Decode(input)),
-                    // "FormatJson" => FormatJsonText(input),
                     _ => input
                 };
             }
@@ -65,32 +61,6 @@ namespace LogGrokX.Data
                 Trace.TraceError(e.ToString());
                 return input;
             }
-        }
-
-        static string FormatJsonText(string jsonString)
-        {
-            using var doc = JsonDocument.Parse(
-                jsonString,
-                new JsonDocumentOptions
-                {
-                    AllowTrailingCommas = true
-                }
-            );
-            MemoryStream memoryStream = new MemoryStream();
-            using (
-                var utf8JsonWriter = new Utf8JsonWriter(
-                    memoryStream,
-                    new JsonWriterOptions
-                    {
-                        Indented = true
-                    }
-                )
-            )
-            {
-                doc.WriteTo(utf8JsonWriter);
-            }
-            return new System.Text.UTF8Encoding()
-                .GetString(memoryStream.ToArray());
         }
 
         private static string Base64Decode(string input)

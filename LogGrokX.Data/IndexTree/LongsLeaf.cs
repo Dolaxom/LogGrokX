@@ -52,7 +52,7 @@ namespace LogGrokX.Data.IndexTree
 
         public override (int index, LongsLeaf leaf) FindByValue(long value)
         {
-            var index = _storage.BinarySearch((int) (value - _firstIndex));
+            var index = _storage.BinarySearch((int) (value - _firstValue));
             return (_firstIndex + (index >= 0 ? index : ~index), this);
         }
 
@@ -60,7 +60,7 @@ namespace LogGrokX.Data.IndexTree
         {
             foreach (var value in _storage)
             {
-                yield return _firstIndex + value;
+                yield return _firstValue + value;
             }
         }
 
