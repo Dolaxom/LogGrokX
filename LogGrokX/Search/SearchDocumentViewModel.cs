@@ -19,7 +19,7 @@ using LogGrokX.Filter;
 
 namespace LogGrokX.Search
 {
-    public class SearchDocumentViewModel : ViewModelBase, IDisposable
+    public class SearchDocumentViewModel : ViewModelBase, ISearchDocument
     {
         public const int MatchBucketCount = 1000;
 
@@ -27,7 +27,7 @@ namespace LogGrokX.Search
         private SearchPattern _searchPattern;
         private bool[] _matchBuckets = Array.Empty<bool>();
         
-        public Action<int>? NavigateToIndexRequested;
+        public Action<int>? NavigateToIndexRequested { get; set; }
         private  bool _isIndeterminateProgress;
 
         private readonly object _cancellationTokenSourceLock = new();

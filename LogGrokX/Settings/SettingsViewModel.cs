@@ -15,6 +15,7 @@ namespace LogGrokX.Settings
         private readonly ApplicationSettings _applicationSettings;
         private readonly TimelinePlacementService _timelinePlacementService;
         private readonly ThreadGroupingService _threadGroupingService;
+        private readonly MergedFilesViewService _mergedFilesViewService;
         private readonly TextZoomService _textZoomService;
         private string _validationMessage = string.Empty;
         private ColorRuleViewModel? _selectedColorRule;
@@ -24,11 +25,13 @@ namespace LogGrokX.Settings
         public SettingsViewModel(ApplicationSettings applicationSettings,
             TimelinePlacementService timelinePlacementService,
             ThreadGroupingService threadGroupingService,
+            MergedFilesViewService mergedFilesViewService,
             TextZoomService textZoomService)
         {
             _applicationSettings = applicationSettings;
             _timelinePlacementService = timelinePlacementService;
             _threadGroupingService = threadGroupingService;
+            _mergedFilesViewService = mergedFilesViewService;
             _textZoomService = textZoomService;
 
             View = new ViewSettingsViewModel(applicationSettings.ViewSettings);
@@ -121,6 +124,7 @@ namespace LogGrokX.Settings
 
             _timelinePlacementService.SetAtTop(View.TimelineAtTop);
             _threadGroupingService.SetEnabled(View.GroupByThread);
+            _mergedFilesViewService.SetEnabled(View.MergedFilesView);
             _textZoomService.SetFontSize(View.LogFontSize);
 
             var file = new YamlSettingsFile(ApplicationSettings.SettingsFileName);
@@ -131,6 +135,7 @@ namespace LogGrokX.Settings
             file.SetScalar("ViewSettings", "TimelineAtTop", View.TimelineAtTop ? "true" : "false");
             file.SetScalar("ViewSettings", "LogFontSize", View.LogFontSize.ToString(CultureInfo.InvariantCulture));
             file.SetScalar("ViewSettings", "GroupByThread", View.GroupByThread ? "true" : "false");
+            file.SetScalar("ViewSettings", "MergedFilesView", View.MergedFilesView ? "true" : "false");
 
             var colorRules = ColorRules.Select(rule => rule.ToData()).ToList();
             if (!AreColorRulesEqual(_savedColorRules, colorRules))

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -10,6 +10,7 @@ using System.Windows.Input;
 using LogGrokX.AvalonDockExtensions;
 using LogGrokX.Data;
 using LogGrokX.MarkedLines;
+using LogGrokX.MergedView;
 using LogGrokX.Search;
 using LogGrokX.Theming;
 using Microsoft.Win32;
@@ -26,10 +27,13 @@ namespace LogGrokX
         private readonly TimelinePlacementService _timelinePlacementService;
         private readonly TextZoomService _textZoomService;
         private readonly ThreadGroupingService _threadGroupingService;
+        private readonly MergedFilesViewService _mergedFilesViewService;
 
         public ObservableCollection<DocumentViewModel> Documents { get; }
 
         public MarkedLinesViewModel MarkedLinesViewModel { get; }
+
+        public MergedViewModel MergedViewModel { get; }
         
         public ICommand OpenFileCommand => new DelegateCommand(OpenFile);
 
@@ -49,6 +53,7 @@ namespace LogGrokX
             TimelinePlacementService timelinePlacementService,
             TextZoomService textZoomService,
             ThreadGroupingService threadGroupingService,
+            MergedFilesViewService mergedFilesViewService,
             Func<ObservableCollection<DocumentViewModel>, MarkedLinesViewModel> markedLinesViewModelFactory)
         {
             _applicationSettings = applicationSettings;
@@ -58,10 +63,13 @@ namespace LogGrokX
             _timelinePlacementService = timelinePlacementService;
             _textZoomService = textZoomService;
             _threadGroupingService = threadGroupingService;
+            _mergedFilesViewService = mergedFilesViewService;
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
             _threadGroupingService.Changed += OnThreadGroupingChanged;
+            _mergedFilesViewService.Changed += OnMergedFilesViewChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
+            MergedViewModel = new MergedViewModel(Documents, _searchAutocompleteCache, _savedSearchPatternStore, _applicationSettings, _threadGroupingService) { IsActive = _mergedFilesViewService.IsEnabled };
             OpenSettings = new DelegateCommand(OpenSettingsWindow);
             OpenSupportCommand = new DelegateCommand(OpenSupport);
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
@@ -133,6 +141,18 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsGroupByThread));
         }
 
+        public bool IsMergedView
+        {
+            get => _mergedFilesViewService.IsEnabled;
+            set => _mergedFilesViewService.SetEnabled(value);
+        }
+
+        private void OnMergedFilesViewChanged()
+        {
+            MergedViewModel.IsActive = _mergedFilesViewService.IsEnabled;
+            InvokePropertyChanged(nameof(IsMergedView));
+        }
+
         private static readonly AvalonDock.Themes.Vs2013LightTheme LightDockTheme = new();
         private static readonly AvalonDock.Themes.Vs2013DarkTheme DarkDockTheme = new();
 
@@ -152,6 +172,7 @@ namespace LogGrokX
                 _applicationSettings,
                 _timelinePlacementService,
                 _threadGroupingService,
+                _mergedFilesViewService,
                 _textZoomService);
             var window = new LogGrokX.Settings.SettingsWindow(viewModel);
             if (Application.Current?.MainWindow is { } owner)

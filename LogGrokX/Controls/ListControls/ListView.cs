@@ -27,6 +27,10 @@ namespace LogGrokX.Controls.ListControls
         private VirtualizingStackPanel.VirtualizingStackPanel? _panel;
 
         private bool? _haveExternalColumnSettings;
+
+        private System.Windows.Controls.GridView? _settingsGridView;
+
+        private readonly List<(INotifyPropertyChanged Column, PropertyChangedEventHandler Handler)> _columnWidthHandlers = new();
         
         public static readonly DependencyProperty ReadonlySelectedItemsProperty =
             DependencyProperty.Register(nameof(ReadonlySelectedItems), typeof(IEnumerable), typeof(ListView));
@@ -225,9 +229,22 @@ namespace LogGrokX.Controls.ListControls
                     return;
                 }
 
+                if (!ReferenceEquals(gridView, _settingsGridView))
+                {
+                    DetachColumnWidthHandlers();
+                    _settingsGridView = gridView;
+                    _haveExternalColumnSettings = null;
+                }
+
                 if (_haveExternalColumnSettings == null)
                 {
                     var columnSettings = ColumnSettings;
+                    if (columnSettings?.ColumnWidths is { } storedWidths &&
+                        storedWidths.Length != gridView.Columns.Count)
+                    {
+                        columnSettings.ColumnWidths = null;
+                    }
+
                     _haveExternalColumnSettings = columnSettings?.ColumnWidths != null;
 
                     if (columnSettings != null)
@@ -235,17 +252,23 @@ namespace LogGrokX.Controls.ListControls
                         columnSettings.ColumnWidths ??= gridView.Columns.Select(c => c.Width).ToArray();
                         foreach (var column in gridView.Columns)
                         {
-                            if (column is INotifyPropertyChanged notifyPropertyChanged)
+                            if (column is not INotifyPropertyChanged notifyPropertyChanged)
+                                continue;
+
+                            var capturedGridView = gridView;
+                            PropertyChangedEventHandler handler = (_, args) =>
                             {
-                                notifyPropertyChanged.PropertyChanged += (_, args) =>
-                                {
-                                    if (args.PropertyName == "ActualWidth")
-                                    {
-                                        columnSettings.ColumnWidths =
-                                            gridView.Columns.Select(gridViewColumn => gridViewColumn.ActualWidth).ToArray();
-                                    }
-                                };
-                            }
+                                if (args.PropertyName != "ActualWidth")
+                                    return;
+
+                                if (!ReferenceEquals(capturedGridView, View))
+                                    return;
+
+                                columnSettings.ColumnWidths =
+                                    capturedGridView.Columns.Select(gridViewColumn => gridViewColumn.ActualWidth).ToArray();
+                            };
+                            notifyPropertyChanged.PropertyChanged += handler;
+                            _columnWidthHandlers.Add((notifyPropertyChanged, handler));
                         }
                     }
                 }
@@ -261,6 +284,14 @@ namespace LogGrokX.Controls.ListControls
                     _headerAdjusted = true;
                 }
             }, DispatcherPriority.ApplicationIdle);
+        }
+
+        private void DetachColumnWidthHandlers()
+        {
+            foreach (var (column, handler) in _columnWidthHandlers)
+                column.PropertyChanged -= handler;
+
+            _columnWidthHandlers.Clear();
         }
 
         private VirtualizingStackPanel.VirtualizingStackPanel? GetPanel()

@@ -34,6 +34,8 @@ namespace LogGrokX.Controls.ListControls
         public BaseLogListViewItem(ItemsControl itemsControl)
         {
             _itemsControl = itemsControl;
+            if (Environment.GetEnvironmentVariable("LOGGROKX_BITMAPCACHE") == "1")
+                CacheMode = new BitmapCache();
             _itemsControl.Items.CurrentChanged += (_, _) =>
             {
                 UpdateIsCurrentProperty();
@@ -187,20 +189,23 @@ namespace LogGrokX.Controls.ListControls
         private void UpdateColorOverride()
         {
             var colorSettings = ColorSettings.GetColorSettings(this);
-            var text = Content?.ToString();
             ColorSettings.ColorRule? rule = null;
-            if (colorSettings != null && text != null)
+            var rules = colorSettings?.Rules;
+            if (rules is { Count: > 0 } && Content?.ToString() is { } text)
             {
                 // ReSharper disable once ForCanBeConvertedToForeach
                 // ReSharper disable once LoopCanBeConvertedToQuery
-                for (var i = 0; i < colorSettings.Rules.Count; i++)
+                for (var i = 0; i < rules.Count; i++)
                 {
-                    var colorSettingsRule = colorSettings.Rules[i];
+                    var colorSettingsRule = rules[i];
                     if (!colorSettingsRule.IsMatch(text)) continue;
                     rule = colorSettingsRule;
                     break;
                 }
             }
+
+            if (rule == null && _overrideForeground == null && _overrideBackground == null)
+                return;
 
             var isDark = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark;
             _overrideForeground = rule?.GetForegroundBrush(isDark);

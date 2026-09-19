@@ -1,0 +1,252 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:local="clr-namespace:LogGrokX"
+                    xmlns:mergedView="clr-namespace:LogGrokX.MergedView"
+                    xmlns:localControls="clr-namespace:LogGrokX.Controls"
+                    xmlns:colors="clr-namespace:LogGrokX.Colors"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                    xmlns:listControls="clr-namespace:LogGrokX.Controls.ListControls"
+                    xmlns:virtualizingStackPanel="clr-namespace:LogGrokX.Controls.ListControls.VirtualizingStackPanel"
+                    xmlns:gridView="clr-namespace:LogGrokX.Controls.GridView"
+                    xmlns:textRender="clr-namespace:LogGrokX.Controls.TextRender"
+                    mc:Ignorable="d">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ListViewItemStyle.xaml" />
+        <ResourceDictionary Source="LogViewContextMenu.xaml" />
+        <ResourceDictionary Source="DocumentSearchTemplate.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="MergedItemContainerStyle" TargetType="{x:Type ListViewItem}"
+           BasedOn="{StaticResource ItemContainerStyle}">
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background"
+                Value="{Binding Content.BackgroundBrush,
+                        RelativeSource={RelativeSource Self}}" />
+    </Style>
+
+    <DataTemplate x:Key="MergedSearchDocumentViewTemplate" DataType="{x:Type mergedView:MergedSearchDocumentViewModel}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <ProgressBar Height="3"
+                         HorizontalAlignment="Stretch"
+                         IsIndeterminate="{Binding IsIndeterminateProgress, Mode=OneWay}"
+                         Visibility="{Binding IsSearching,
+                                              Mode=OneWay,
+                                              Converter={StaticResource BooleanToVisibilityConverter}}"
+                         Value="{Binding SearchProgress, Mode=OneWay}" />
+            <listControls:ListView Grid.Row="1"
+                                   Background="{DynamicResource ApplicationBackgroundBrush}"
+                                   BorderThickness="0"
+                                   SelectionMode="Extended"
+                                   ItemContainerStyle="{StaticResource MergedItemContainerStyle}"
+                                   ItemsSource="{Binding Lines}"
+                                   View="{Binding CustomView}"
+                                   ColumnSettings="{Binding ColumnSettings}"
+                                   ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                   ScrollViewer.CanContentScroll="True"
+                                   VirtualizingStackPanel.IsVirtualizing="True"
+                                   VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                   localControls:NavigateToLineBehavior.NavigateToLineRequest="{Binding NavigateToLineRequest}"
+                                   localControls:NavigateToLineBehavior.ChangeCurrentItem="False"
+                                   listControls:BaseLogListViewItem.OnItemActivatedCommand="{Binding ItemActivatedCommand}"
+                                   FontFamily="{StaticResource JetBrainsMono}"
+                                   FontSize="{DynamicResource LogFontSize}">
+                <listControls:ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <virtualizingStackPanel:VirtualizingStackPanel
+                            CurrentPosition="{Binding CurrentItemIndex, TargetNullValue=-1}"
+                            ReplaceSelectionOnCurrentPosition="True"
+                            textRender:TextView.HighlightRegex="{Binding HighlightRegex}"
+                            textRender:ClippingRectProviderBehavior.ClippingRectProvider="{Binding RelativeSource={RelativeSource Self}}"
+                            Tag="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type listControls:ListView}}}" />
+                    </ItemsPanelTemplate>
+                </listControls:ListView.ItemsPanel>
+            </listControls:ListView>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MergedViewTemplate" DataType="{x:Type mergedView:MergedViewModel}">
+        <localControls:RootDocumentControl SearchTextCommand="{Binding Search.SearchTextCommand}">
+            <localControls:RootDocumentControl.InputBindings>
+                <KeyBinding Gesture="Ctrl+F" Command="{Binding Search.Activate}" />
+                <KeyBinding Gesture="F3" Command="{Binding Search.FindNextCommand}" />
+                <KeyBinding Gesture="Shift+F3" Command="{Binding Search.FindPreviousCommand}" />
+            </localControls:RootDocumentControl.InputBindings>
+            <Grid Margin="4"
+                  colors:ColorSettings.ColorSettings="{Binding ColorSettings}"
+                  localControls:RoutedCommandBehavior.RoutedCommandToCommandBinding="{localControls:RoutedCommandToCommandBinding 
+                      RoutedCommand={x:Static local:RoutedCommands.ClearFilters}, 
+                      Command={Binding ClearFiltersCommand}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <localControls:CollapsibleRow Collapsed="{Binding Search.IsFilterDisabled}"
+                                                  Height="200" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <ItemsControl Margin="4,2"
+                                  ItemsSource="{Binding AvailableDocuments}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type mergedView:MergedDocumentItem}">
+                                <CheckBox Margin="4,2,12,2"
+                                          VerticalAlignment="Center"
+                                          IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="12"
+                                                Height="12"
+                                                Margin="0,0,6,0"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding TimelineBrush}"
+                                                CornerRadius="3" />
+                                        <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Margin="4,2,4,2"
+                                Orientation="Horizontal"
+                                Visibility="{Binding HaveExclusions,
+                                            Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ItemsControl ItemsSource="{Binding ActiveFilters}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="2"
+                                            Padding="8,2"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="12">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock VerticalAlignment="Center"
+                                                       FontSize="11"
+                                                       Text="{Binding DisplayText}" />
+                                            <ui:Button Margin="4,0,0,0"
+                                                       Padding="2"
+                                                       Appearance="Transparent"
+                                                       Command="{Binding RemoveCommand}"
+                                                       Content="&#x2715;"
+                                                       FontSize="10"
+                                                       ToolTip="Remove filter" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ui:Button Margin="4,2,0,2"
+                                   Padding="8,2"
+                                   Appearance="Transparent"
+                                   Command="{Binding ClearExclusionsCommand}"
+                                   Content="Clear all"
+                                   FontSize="11"
+                                   ToolTip="Clear all filters" />
+                    </StackPanel>
+                </StackPanel>
+
+                <DockPanel Grid.Row="1" LastChildFill="True">
+                    <localControls:LogMinimapControl DockPanel.Dock="Bottom"
+                                                     Height="30"
+                                                     HorizontalAlignment="Stretch"
+                                                     ClipToBounds="True"
+                                                     ItemCount="{Binding TotalLineCount}"
+                                                     TimelineSegments="{Binding TimelineSegments}"
+                                                     IsRangeEnabled="{Binding TimeRangeFilter.IsAvailable}"
+                                                     TimeIndex="{Binding TimeRangeFilter.TimeIndex}"
+                                                     Minimum="{Binding TimeRangeFilter.Minimum, Mode=OneWay}"
+                                                     Maximum="{Binding TimeRangeFilter.Maximum, Mode=OneWay}"
+                                                     LowerValue="{Binding TimeRangeFilter.LowerValue, Mode=TwoWay}"
+                                                     UpperValue="{Binding TimeRangeFilter.UpperValue, Mode=TwoWay}"
+                                                     MinText="{Binding TimeRangeFilter.MinText}"
+                                                     MaxText="{Binding TimeRangeFilter.MaxText}"
+                                                     DurationText="{Binding TimeRangeFilter.DurationText}"
+                                                     UseLineNumbers="{Binding TimeRangeFilter.IsLineNumberMode}"
+                                                     ScrollPosition="{Binding ScrollPosition}"
+                                                     MatchBuckets="{Binding Search.CurrentMatchBuckets}"
+                                                     MatchLine="{Binding Search.CurrentMatchLine}"
+                                                     ScrollIndicatorBrush="#FF00C853"
+                                                     MatchLineBrush="#FFFF00FF"
+                                                     MatchBrush="#A0F2A900"
+                                                     MarkerBrush="#FFE81123"
+                                                     DayBoundaryBrush="#FF8E8E8E"
+                                                     MinimapBackground="{DynamicResource ControlFillColorDefaultBrush}"
+                                                     SelectionBrush="#33007ACC"
+                                                     DimBrush="#40000000"
+                                                     HandleBrush="#FF007ACC"
+                                                     DurationForeground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                     DurationBackground="Transparent"
+                                                     NavigateCommand="{Binding NavigateToMarkerCommand}"
+                                                     ToolTip="Timeline: colors show which file each region comes from; drag the handles to filter by time" />
+                    <listControls:ListView ItemsSource="{Binding Lines}"
+                                            Background="{DynamicResource ApplicationBackgroundBrush}"
+                                            BorderThickness="0"
+                                            SelectionMode="Extended"
+                                            ItemContainerStyle="{StaticResource MergedItemContainerStyle}"
+                                            ReadonlySelectedItems="{Binding SelectedItems, Mode=OneWayToSource}"
+                                            View="{Binding CustomView}"
+                                            ColumnSettings="{Binding ColumnSettings}"
+                                            ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                            ScrollViewer.CanContentScroll="True"
+                                            VirtualizingStackPanel.IsVirtualizing="True"
+                                            VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                            localControls:NavigateToLineBehavior.NavigateToLineRequest="{Binding NavigateToLineRequest}"
+                                            localControls:NavigateToLineBehavior.ChangeCurrentItem="True"
+                                            FontFamily="{StaticResource JetBrainsMono}"
+                                            FontSize="{DynamicResource LogFontSize}">
+                        <listControls:ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <virtualizingStackPanel:VirtualizingStackPanel
+                                    CurrentPosition="{Binding CurrentItemIndex}"
+                                    FirstVisibleIndex="{Binding FirstVisibleIndex}"
+                                    GroupByThread="{Binding GroupByThread}"
+                                    ThreadFieldIndex="{Binding ThreadFieldIndex}"
+                                    Tag="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type listControls:ListView}}}"
+                                    ContextMenu="{StaticResource LogViewContextMenu}"
+                                    textRender:TextView.HighlightRegex="{Binding Search.HighlightRegex}"
+                                    textRender:ClippingRectProviderBehavior.ClippingRectProvider="{Binding RelativeSource={RelativeSource Self}}" />
+                            </ItemsPanelTemplate>
+                        </listControls:ListView.ItemsPanel>
+                    </listControls:ListView>
+                </DockPanel>
+
+                <GridSplitter Grid.Row="2"
+                              ResizeBehavior="PreviousAndNext"
+                              VerticalAlignment="Top"
+                              HorizontalAlignment="Stretch"
+                              Height="10"
+                              Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                              Visibility="{Binding Search.IsFilterEnabled,
+                                          Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <StackPanel Grid.Row="2">
+                    <Border HorizontalAlignment="Stretch" Height="10" />
+                    <ContentControl ContentTemplate="{StaticResource SearchParametersTemplate}"
+                                    Content="{Binding Search}" />
+                </StackPanel>
+
+                <ContentControl Grid.Row="3"
+                                ContentTemplate="{StaticResource SearchResultsTemplate}"
+                                Content="{Binding Search}"
+                                Visibility="{Binding Search.IsFilterEnabled,
+                                            Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
+        </localControls:RootDocumentControl>
+    </DataTemplate>
+</ResourceDictionary>

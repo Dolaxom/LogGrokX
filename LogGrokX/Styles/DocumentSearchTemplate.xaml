@@ -21,6 +21,7 @@
     <SolidColorBrush x:Key="AvalonDock_ThemeMetro_BaseColor5"
                      Color="{DynamicResource TextFillColorPrimary}" />
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    <search:SearchResultsViewTemplateSelector x:Key="SearchResultsViewTemplateSelector" />
     <ActivateCommandLayoutItemFromLayoutModelConverter x:Key="ActivateCommandLayoutItemFromLayoutModelConverter" />
     <DataTemplate x:Key="SearchDocumentViewTemplate" DataType="search:SearchDocumentViewModel">
         <Grid>
@@ -288,7 +289,7 @@
             <DockingManager avalonDockExtensions:BindingBehavior.CurrentDocument="{Binding CurrentDocument}"
                                        avalonDockExtensions:BindingBehavior.DocumentsSource="{Binding Documents}"
                                        avalonDockExtensions:BindingBehavior.OnDocumentCloseCommand="{Binding CloseDocumentCommand}"
-                                       avalonDockExtensions:BindingBehavior.DocumentViewTemplate="{StaticResource SearchDocumentViewTemplate}">
+                                       avalonDockExtensions:BindingBehavior.DocumentViewTemplateSelector="{StaticResource SearchResultsViewTemplateSelector}">
 
                 <!-- localBehaviors:BindingBehavior.OnDocumentCloseCommand="{Binding CloseDocument}" -->
                 <DockingManager.LayoutItemContainerStyle>

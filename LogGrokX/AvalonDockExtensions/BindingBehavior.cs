@@ -56,6 +56,11 @@ public static class BindingBehavior
         dockingManager.SetValue(DocumentViewTemplateProperty, value);
     }
 
+    public static void SetDocumentViewTemplateSelector(DockingManager dockingManager, DataTemplateSelector value)
+    {
+        dockingManager.SetValue(DocumentViewTemplateSelectorProperty, value);
+    }
+
     public static void SetObservableCollectionFactoryLink(DockingManager dockingManager, object value)
     {
         dockingManager.SetValue(ObservableCollectionFactoryLinkProperty, value);

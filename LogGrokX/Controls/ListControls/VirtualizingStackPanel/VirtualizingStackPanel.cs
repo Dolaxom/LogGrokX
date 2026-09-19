@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using LogGrokX.Diagnostics;
 
 namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
 {
@@ -23,6 +24,8 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
         public static readonly DependencyProperty ThreadFieldIndexProperty = DependencyProperty.Register(
             "ThreadFieldIndex", typeof(int), typeof(VirtualizingStackPanel),
             new FrameworkPropertyMetadata(-1, OnGroupingChanged));
+
+        private static readonly Logger Log = Logger.Get("VirtualizingStackPanel");
 
         private List<VisibleItem> _visibleItems = new();
         private readonly Stack<ListViewItem> _recycled = new();
@@ -81,6 +84,8 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
 
         protected override Size MeasureOverride(Size availableSize)
         {
+            var perfStart = Stopwatch.GetTimestamp();
+            var allocStart = PerfProbe.AllocMark();
             UpdateViewPort(availableSize);
             UpdateExtent();
             
@@ -92,10 +97,13 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
 
             var visibleItemsHeight = _visibleItems.Sum(v => v.Height);
             IsViewportIsCompletelyFilled = visibleItemsHeight >= availableSize.Height;
-            
-            return double.IsPositiveInfinity(availableSize.Height) ? 
+
+            var result = double.IsPositiveInfinity(availableSize.Height) ? 
                 new Size(maxWidth, visibleItemsHeight) : 
                 new Size(Math.Max(maxWidth, availableSize.Width), availableSize.Height);
+            PerfProbe.RecordAlloc("panelMeasure", allocStart, PerfProbe.AllocMark());
+            PerfProbe.RecordMeasure(perfStart);
+            return result;
         }
         
         public double VisibleItemsMaxWidth { get; private set; }
@@ -127,6 +135,8 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
       
         protected override Size ArrangeOverride(Size finalSize)
         {
+            var perfStart = Stopwatch.GetTimestamp();
+            var allocStart = PerfProbe.AllocMark();
             var screenBound = finalSize.Height;
 
             var invisibleItemOffset = screenBound;
@@ -154,6 +164,8 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
                 item.Arrange(childRect);
             }
 
+            PerfProbe.RecordAlloc("panelArrange", allocStart, PerfProbe.AllocMark());
+            PerfProbe.RecordArrange(perfStart);
             return finalSize;
         }
 
@@ -195,9 +207,9 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             var isGroupLast = false;
             var isGroupContinuation = false;
 
-            if (GroupByThread && ThreadFieldIndex >= 0 && Items[index] is LineViewModel line)
+            if (GroupByThread && ThreadFieldIndex >= 0 && Items[index] is IThreadGroupedItem line)
             {
-                isGroupFirst = index == 0 || !HasSameThread(Items[index - 1] as LineViewModel, line);
+                isGroupFirst = index == 0 || !line.HasSameThread(Items[index - 1] as IThreadGroupedItem, ThreadFieldIndex);
                 isGroupLast = index == Items.Count - 1;
                 isGroupContinuation = !isGroupFirst;
             }
@@ -205,15 +217,6 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             BaseLogListViewItem.SetIsGroupFirst(element, isGroupFirst);
             BaseLogListViewItem.SetIsGroupLast(element, isGroupLast);
             BaseLogListViewItem.SetIsGroupContinuation(element, isGroupContinuation);
-        }
-
-        private bool HasSameThread(LineViewModel? other, LineViewModel current)
-        {
-            if (other == null)
-                return false;
-
-            return other.GetComponentSpan(ThreadFieldIndex)
-                .SequenceEqual(current.GetComponentSpan(ThreadFieldIndex));
         }
 
         private void RecycleItems(IEnumerable<VisibleItem> itemsToRecycle)
@@ -427,6 +430,7 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
 
         private void ScrollUp(double distance)
         {
+            var perfStart = Stopwatch.GetTimestamp();
             var firstVisibleItem =
                 _visibleItems.Search(v => LessOrEquals(v.UpperBound, 0)
                                           && v.LowerBound > 0);
@@ -460,18 +464,27 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             var itemToScroll = _visibleItems.Search(v => LessOrEquals(v.UpperBound, builtDistance)
                                                          && v.LowerBound > builtDistance);
 
-            Debug.Assert(itemToScroll.HasValue);
-            var itemToScrollValue = itemToScroll.Value;
+            if (itemToScroll is not { } itemToScrollValue)
+            {
+                Log.Warn("ScrollUp: no item to scroll, builtDistance={0}, items={1}, visible={2}",
+                    builtDistance, Items.Count, _visibleItems.Count);
+                SetVerticalOffset(0);
+                PerfProbe.RecordScroll(perfStart);
+                return;
+            }
 
             var delta = (itemToScrollValue.UpperBound - builtDistance) / itemToScrollValue.Height;
             SetVerticalOffset(itemToScrollValue.Index - delta);
+            PerfProbe.RecordScroll(perfStart);
         }
 
         private ListViewItem? GenerateElement(int currentIndex)
         {
             if (currentIndex >= Items.Count || currentIndex < 0)
                 return null;
-            
+
+            var perfStart = Stopwatch.GetTimestamp();
+            var allocStart = GC.GetAllocatedBytesForCurrentThread();
             ListViewItem? newItem;
             if (_recycled.Count > 0)
             {
@@ -485,11 +498,14 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
                 InsertAndMeasureItem(newItem, currentIndex, true);
             }
 
+            PerfProbe.RecordElementAlloc(GC.GetAllocatedBytesForCurrentThread() - allocStart);
+            PerfProbe.RecordElement(perfStart);
             return newItem;
         }
 
         private void ScrollDown(double distance)
         {
+            var perfStart = Stopwatch.GetTimestamp();
             var lastItem =
                 _visibleItems.Search(v => v.UpperBound < _viewPortHeightInPixels
                                           && GreaterOrEquals(v.LowerBound, _viewPortHeightInPixels));
@@ -519,14 +535,21 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
                 break;
             }
 
-            var itemToScroll = _visibleItems.Search(v => v.UpperBound < builtDistance
+            var itemToScroll = _visibleItems.Search(v => LessOrEquals(v.UpperBound, builtDistance)
                                                          && GreaterOrEquals(v.LowerBound, builtDistance));
 
-            Debug.Assert(itemToScroll.HasValue);
-            var itemToScrollValue = itemToScroll.Value;
+            if (itemToScroll is not { } itemToScrollValue)
+            {
+                Log.Warn("ScrollDown: no item to scroll, builtDistance={0}, items={1}, visible={2}",
+                    builtDistance, Items.Count, _visibleItems.Count);
+                SetVerticalOffset(_extent.Height);
+                PerfProbe.RecordScroll(perfStart);
+                return;
+            }
 
             var delta = (builtDistance - itemToScrollValue.UpperBound) / itemToScrollValue.Height;
             SetVerticalOffset(itemToScrollValue.Index + delta);
+            PerfProbe.RecordScroll(perfStart);
         }
 
         private const double Epsilon = 0.00001;

@@ -27,6 +27,10 @@ namespace LogGrokX.Controls
             nameof(MatchBuckets), typeof(IEnumerable), typeof(LogMinimapControl),
             new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnMatchBucketsChanged));
 
+        public static readonly DependencyProperty TimelineSegmentsProperty = DependencyProperty.Register(
+            nameof(TimelineSegments), typeof(IEnumerable), typeof(LogMinimapControl),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
         public static readonly DependencyProperty ItemCountProperty = DependencyProperty.Register(
             nameof(ItemCount), typeof(int), typeof(LogMinimapControl),
             new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -155,6 +159,12 @@ namespace LogGrokX.Controls
         {
             get => (IEnumerable?)GetValue(MatchBucketsProperty);
             set => SetValue(MatchBucketsProperty, value);
+        }
+
+        public IEnumerable? TimelineSegments
+        {
+            get => (IEnumerable?)GetValue(TimelineSegmentsProperty);
+            set => SetValue(TimelineSegmentsProperty, value);
         }
 
         public int ItemCount
@@ -328,6 +338,7 @@ namespace LogGrokX.Controls
             if (background != null)
                 drawingContext.DrawRectangle(background, null, new Rect(0, 0, width, height));
 
+            DrawTimelineSegments(drawingContext, width, height);
             DrawMatchBuckets(drawingContext, width, height);
             DrawDayBoundaries(drawingContext, width, height);
             DrawMarkers(drawingContext, width, height);
@@ -392,6 +403,29 @@ namespace LogGrokX.Controls
             var center = CenterOf(position, count, width);
             var left = Math.Clamp(center - indicatorWidth / 2, 0, Math.Max(0, width - indicatorWidth));
             drawingContext.DrawRectangle(brush, null, new Rect(left, 0, indicatorWidth, height));
+        }
+
+        private void DrawTimelineSegments(DrawingContext drawingContext, double width, double height)
+        {
+            var segments = TimelineSegments;
+            var count = ItemCount;
+            if (segments == null || count <= 0)
+                return;
+
+            foreach (var item in segments)
+            {
+                if (item is not TimelineSegment segment)
+                    continue;
+
+                var start = Math.Clamp(segment.StartLine, 0, count);
+                var end = Math.Clamp(segment.EndLine, start, count);
+                if (end <= start)
+                    continue;
+
+                var left = CenterOf(start, count, width);
+                var right = CenterOf(end, count, width);
+                drawingContext.DrawRectangle(segment.Brush, null, new Rect(left, 0, Math.Max(1, right - left), height));
+            }
         }
 
         private void DrawMatchBuckets(DrawingContext drawingContext, double width, double height)

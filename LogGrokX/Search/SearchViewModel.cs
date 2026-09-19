@@ -15,7 +15,7 @@ namespace LogGrokX.Search
     // ReSharper disable once ClassNeverInstantiated.Global
     public class SearchViewModel : ViewModelBase, IDataErrorInfo
     {
-        private readonly Func<SearchPattern, SearchDocumentViewModel> _searchDocumentViewModelFactory;
+        private readonly Func<SearchPattern, ISearchDocument> _searchDocumentViewModelFactory;
         private string _textToSearch = string.Empty;
         private  bool _isCaseSensitive = SearchPattern.Empty.IsCaseSensitive;
         private bool _useRegex = SearchPattern.Empty.UseRegex;
@@ -28,13 +28,14 @@ namespace LogGrokX.Search
 
         private SearchPattern _searchPattern = SearchPattern.Empty;
             
-        private SearchDocumentViewModel? _currentDocument;
+        private ISearchDocument? _currentDocument;
+        private Regex? _highlightRegex;
         private readonly SearchAutocompleteCache _searchAutocompleteCache;
         private readonly SavedSearchPatternStore _savedSearchPatternStore;
         private string _savedSearchFilter = string.Empty;
         private string _newSearchName = string.Empty;
 
-        public SearchViewModel(Func<SearchPattern, SearchDocumentViewModel> searchDocumentViewModelFactory,
+        public SearchViewModel(Func<SearchPattern, ISearchDocument> searchDocumentViewModelFactory,
             SearchAutocompleteCache searchAutocompleteCache,
             SavedSearchPatternStore savedSearchPatternStore)
         {
@@ -47,7 +48,7 @@ namespace LogGrokX.Search
                 };
                 
             ClearSearchCommand = new DelegateCommand(ClearSearch);
-            CloseDocumentCommand = DelegateCommand.Create<SearchDocumentViewModel>(CloseDocument);
+            CloseDocumentCommand = DelegateCommand.Create<ISearchDocument>(CloseDocument);
             AddNewSearchCommand = new DelegateCommand(() => AddNewSearch(_searchPattern.Clone()));
             FindNextCommand = new DelegateCommand(() => CurrentDocument?.FindNext());
             FindPreviousCommand = new DelegateCommand(() => CurrentDocument?.FindPrevious());
@@ -60,7 +61,7 @@ namespace LogGrokX.Search
             CancelEditSavedSearchCommand = DelegateCommand.Create<SavedSearchPattern>(CancelEditSavedSearch);
             DeleteSavedSearchCommand = DelegateCommand.Create<SavedSearchPattern>(DeleteSavedSearch);
 
-            Documents = new ObservableCollection<SearchDocumentViewModel>();
+            Documents = new ObservableCollection<ISearchDocument>();
             _searchAutocompleteCache = searchAutocompleteCache;
             _savedSearchPatternStore = savedSearchPatternStore;
             SavedSearches = new ListCollectionView(_savedSearchPatternStore.Items);
@@ -69,7 +70,7 @@ namespace LogGrokX.Search
 
         public event Action<Regex>? CurrentSearchChanged;
 
-        public SearchDocumentViewModel? CurrentDocument
+        public ISearchDocument? CurrentDocument
         {
             get => _currentDocument;
             set
@@ -104,13 +105,13 @@ namespace LogGrokX.Search
 
         private void OnCurrentDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(SearchDocumentViewModel.MatchCounterText))
+            if (e.PropertyName == nameof(ISearchDocument.MatchCounterText))
                 InvokePropertyChanged(nameof(MatchCounterText));
 
-            if (e.PropertyName == nameof(SearchDocumentViewModel.MatchBuckets))
+            if (e.PropertyName == nameof(ISearchDocument.MatchBuckets))
                 InvokePropertyChanged(nameof(CurrentMatchBuckets));
 
-            if (e.PropertyName == nameof(SearchDocumentViewModel.CurrentMatchLine))
+            if (e.PropertyName == nameof(ISearchDocument.CurrentMatchLine))
                 InvokePropertyChanged(nameof(CurrentMatchLine));
         }
 
@@ -119,6 +120,13 @@ namespace LogGrokX.Search
         public bool[] CurrentMatchBuckets => CurrentDocument?.MatchBuckets ?? Array.Empty<bool>();
 
         public int CurrentMatchLine => CurrentDocument?.CurrentMatchLine ?? -1;
+
+        public Regex? HighlightRegex
+        {
+            get => _highlightRegex;
+            private set => SetAndRaiseIfChanged(ref _highlightRegex, value);
+        }
+
         public ICommand FindNextCommand { get; }
         public ICommand FindPreviousCommand { get; }
 
@@ -154,7 +162,7 @@ namespace LogGrokX.Search
 
         public bool IsFilterDisabled => _searchPattern.IsEmpty;
         
-        public ObservableCollection<SearchDocumentViewModel> Documents { get; }
+        public ObservableCollection<ISearchDocument> Documents { get; }
 
         public string Error => string.Empty;
 
@@ -299,7 +307,9 @@ namespace LogGrokX.Search
                 return;
             
             _searchPattern = newSearchPattern;
-            CurrentSearchChanged?.Invoke(_searchPattern.GetRegex(RegexOptions.None));
+            var regex = _searchPattern.GetRegex(RegexOptions.None);
+            HighlightRegex = _searchPattern.IsEmpty ? null : regex;
+            CurrentSearchChanged?.Invoke(regex);
 
             InvokePropertyChanged(nameof(IsFilterEnabled));
             InvokePropertyChanged(nameof(IsFilterDisabled));
@@ -334,7 +344,7 @@ namespace LogGrokX.Search
             CommitSearchPatternImmediately(TextToSearch, IsCaseSensitive, UseRegex);
         }
 
-        private void CloseDocument(SearchDocumentViewModel searchDocumentViewModel)
+        private void CloseDocument(ISearchDocument searchDocumentViewModel)
         {
             searchDocumentViewModel.Dispose();
             if (Documents.Count != 0) return;

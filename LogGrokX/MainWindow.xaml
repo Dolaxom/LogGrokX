@@ -26,6 +26,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Styles/DocumentTemplate.xaml" />
                 <ResourceDictionary Source="Styles/MarkedLinesViewTemplate.xaml" />
+                <ResourceDictionary Source="Styles/MergedViewTemplate.xaml" />
                 <ResourceDictionary Source="Styles/ListViewItemStyle.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <localControls:StringShortenerConvereter x:Key="StringShortenerConverter" />
@@ -104,6 +105,12 @@
                                   IsChecked="{Binding IsGroupByThread, Mode=TwoWay}"
                                   ToolTip="Group consecutive lines by thread">
                         <ui:SymbolIcon Symbol="GroupList24" FontSize="16" />
+                    </ToggleButton>
+                    <ToggleButton Margin="4,0"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding IsMergedView, Mode=TwoWay}"
+                                  ToolTip="Show lines from multiple files merged by time">
+                        <ui:SymbolIcon Symbol="Merge24" FontSize="16" />
                     </ToggleButton>
                     <ui:Button Appearance="Transparent"
                                ToolTip="Support"

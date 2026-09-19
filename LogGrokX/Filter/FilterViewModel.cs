@@ -11,15 +11,15 @@ namespace LogGrokX.Filter
 {
     public class FilterViewModel : ViewModelBase
     {
-        private readonly FilterSettings _filterSettings;
-        private readonly Indexer _indexer;
+        private readonly IFilterSettings _filterSettings;
+        private readonly IComponentIndexer _indexer;
         private string? _textFilter;
         private readonly int _indexedFieldIndex;
 
         public FilterViewModel(
             string fieldName,
-            FilterSettings filterSettings,
-            Indexer indexer,
+            IFilterSettings filterSettings,
+            IComponentIndexer indexer,
             LogMetaInformation metaInformation)
         {
             
@@ -36,10 +36,10 @@ namespace LogGrokX.Filter
             Elements = new ObservableCollection<ElementViewModel>(
                 fieldValues.Select(CreateElementViewModel));
 
-            _indexer.NewComponentAdded += OnNewComponentAdded;
+            _indexer.ComponentAdded += OnNewComponentAdded;
         }
 
-        private readonly ConcurrentBag<(int componentNumber, IndexKey key)> _newComponentsQueue = new();
+        private readonly ConcurrentBag<(int componentNumber, string value)> _newComponentsQueue = new();
         private DispatcherOperation? _addComponentDispatcherOperation;
 
         private ElementViewModel CreateElementViewModel(string fieldValue)
@@ -54,22 +54,21 @@ namespace LogGrokX.Filter
             return newElementViewModel;
         }
 
-        private void OnNewComponentAdded((int componentNumber, IndexKey key) newComponent)
+        private void OnNewComponentAdded(int componentIndex, string value)
         {
-            var (componentIndex, _) = newComponent;
             if (componentIndex != _indexedFieldIndex)
             {
                 return;
             }
 
-            _newComponentsQueue.Add(newComponent);
+            _newComponentsQueue.Add((componentIndex, value));
 
             void ProcessNewComponents()
             {
                 while (_newComponentsQueue.TryTake(out var valueTuple))
                 {
-                    var (componentNumber, key) = valueTuple;
-                    var newElement = CreateElementViewModel(key.GetComponent(componentNumber).ToString());
+                    var (componentNumber, componentValue) = valueTuple;
+                    var newElement = CreateElementViewModel(componentValue);
                     Elements.Add(newElement);
                 }
             }

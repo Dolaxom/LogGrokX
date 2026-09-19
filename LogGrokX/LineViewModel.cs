@@ -6,12 +6,13 @@ using LogGrokX.Data;
 
 namespace LogGrokX
 {
-    public class LineViewModel : BaseLogLineViewModel
-    {
+public class LineViewModel : BaseLogLineViewModel, IThreadGroupedItem
+{
         private readonly string _sourceString;
 
         private readonly ParseResult _parseResult;
         private readonly string _transformResult;
+        private readonly LinePartViewModel?[] _parts;
 
         public LineViewModel(int index, string sourceString, ILineParser parser, Selection markedLines,
             TransformationPerformer transformationPerformer)
@@ -21,6 +22,7 @@ namespace LogGrokX
             _transformResult = transformationPerformer.Transform(sourceString); 
             _parseResult = parser.Parse(
                 _transformResult);
+            _parts = new LinePartViewModel?[_parseResult.ComponentCount];
         }
 
         public LinePartViewModel this[int index] => GetValue(index);
@@ -40,14 +42,30 @@ namespace LogGrokX
             return _transformResult.AsSpan(start, length);
         }
 
+        public bool HasSameThread(IThreadGroupedItem? other, int threadFieldIndex)
+        {
+            if (other is not LineViewModel otherLine)
+                return false;
+
+            return GetComponentSpan(threadFieldIndex)
+                .SequenceEqual(otherLine.GetComponentSpan(threadFieldIndex));
+        }
+
         private LinePartViewModel GetValue(int index)
         {
+            if (index >= 0 && index < _parts.Length && _parts[index] is { } cached)
+                return cached;
+
             var uniqueId = HashCode.Combine(base.Index, index);
             var lineMeta = _parseResult.Get().ParsedLineComponents;
             var text = _transformResult.Substring(lineMeta.ComponentStart(index),
                 lineMeta.ComponentLength(index));
 
-            return new LinePartViewModel(uniqueId, text);
+            var part = new LinePartViewModel(uniqueId, text);
+            if (index >= 0 && index < _parts.Length)
+                _parts[index] = part;
+
+            return part;
         }
 
         public override bool Equals(object? o)

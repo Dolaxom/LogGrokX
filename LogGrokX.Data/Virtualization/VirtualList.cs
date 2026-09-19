@@ -88,10 +88,14 @@ using System.Linq;
             {
                 var (page, _) = pageWithGeneration;
                 if (index - pageStart < page.Count) 
+                {
+                    _pageCache[pageIndex] = (page, ++_pageCounter);
                     return page[index - pageStart];
+                }
 
                 var count = Math.Min(PageSize, Count - pageStart) - page.Count;
                 FetchAndConvert(pageStart + page.Count, count, page);
+                _pageCache[pageIndex] = (page, ++_pageCounter);
                 return page[index - pageStart];
             }
 
@@ -134,7 +138,7 @@ using System.Linq;
         }
 
         private const int PageSize = 128;
-        private const int MaxCacheSize = 10;
+        private const int MaxCacheSize = 24;
         private readonly Func<TSource, T> _converter;
         private readonly Dictionary<int, (PooledList<T>, int genearation)> _pageCache = new();
         private int _pageCounter;

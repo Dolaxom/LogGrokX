@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using LogGrokX.Controls.ListControls;
+using LogGrokX.Controls.TextRender;
 using LogGrokX.Data;
 using LogGrokX.Filter;
 
@@ -32,12 +33,16 @@ namespace LogGrokX.Controls.GridView
             };
         }
 
-        public ViewBase CreateView(double[]? widths)
+        public ViewBase CreateView(double[]? widths) => CreateView(widths, null, null);
+
+        public ViewBase CreateView(double[]? widths, DataTemplate? leadingCellTemplate) =>
+            CreateView(widths, leadingCellTemplate, null);
+
+        public ViewBase CreateView(double[]? widths, DataTemplate? leadingCellTemplate, string? sharedFoldingStatePath)
         {
-            if (widths != null && widths.Length != _meta.FieldNames.Length + 2)
-            {
-                throw new InvalidOperationException("Invalid columnWidthSettings");
-            }
+            var columnCount = _meta.FieldNames.Length + 2 + (leadingCellTemplate != null ? 1 : 0);
+            if (widths != null && widths.Length != columnCount)
+                widths = null;
 
             var indexFieldName = "Index";
             var view = new System.Windows.Controls.GridView();
@@ -53,26 +58,27 @@ namespace LogGrokX.Controls.GridView
             });
 
             var columnIndex = 1;
+            if (leadingCellTemplate != null)
+            {
+                view.Columns.Add(new LogGridViewColumn
+                {
+                    HeaderTemplate = CreateHeaderTemplate("", null),
+                    CellTemplate = leadingCellTemplate,
+                    Width = widths == null ? 0 : widths[columnIndex++]
+                });
+            }
+
             foreach (var fieldHeader in indexFieldName.Yield().Concat(_meta.FieldNames))
             {
-                DataTemplate CreateHeaderTemplate()
+                DataTemplate BuildHeaderTemplate()
                 {
-                    var frameworkElementFactory = new FrameworkElementFactory(typeof(LogGridViewHeader));
-
                     FilterViewModel? filterViewModel = null;
                     if (_filterViewModelFactory != null && _meta.IsFieldIndexed(fieldHeader))
                     {
                         filterViewModel = _filterViewModelFactory(fieldHeader);
                     }
-                    
-                    frameworkElementFactory.SetValue(FrameworkElement.DataContextProperty, 
-                        new HeaderViewModel(fieldHeader, filterViewModel));
-                     
-                    var dataTemplate = new DataTemplate(typeof(DependencyObject))
-                    {
-                        VisualTree = frameworkElementFactory
-                    };
-                    return dataTemplate;
+
+                    return CreateHeaderTemplate(fieldHeader, filterViewModel);
                 }
                 
                 DataTemplate CreateCellTemplate()
@@ -87,6 +93,14 @@ namespace LogGrokX.Controls.GridView
                         Mode = BindingMode.OneWay
                     };
                     frameworkElementFactory.SetBinding(ContentControl.ContentProperty, binding);
+                    if (sharedFoldingStatePath != null)
+                    {
+                        frameworkElementFactory.SetBinding(TextView.SharedFoldingStateProperty, new Binding
+                        {
+                            Path = new PropertyPath(sharedFoldingStatePath),
+                            Mode = BindingMode.OneWay
+                        });
+                    }
                     if (fieldHeader == ThreadFieldName)
                     {
                         var opacityBinding = new Binding
@@ -106,13 +120,24 @@ namespace LogGrokX.Controls.GridView
 
                 view.Columns.Add(new LogGridViewColumn
                 {  
-                    HeaderTemplate = CreateHeaderTemplate(),
+                    HeaderTemplate = BuildHeaderTemplate(),
                     CellTemplate = CreateCellTemplate(),
                     Width = widths == null ? 0 : widths[columnIndex++]
                 });
             }
 
             return view;
+        }
+
+        private static DataTemplate CreateHeaderTemplate(string fieldHeader, FilterViewModel? filterViewModel)
+        {
+            var frameworkElementFactory = new FrameworkElementFactory(typeof(LogGridViewHeader));
+            frameworkElementFactory.SetValue(FrameworkElement.DataContextProperty,
+                new HeaderViewModel(fieldHeader, filterViewModel));
+            return new DataTemplate(typeof(DependencyObject))
+            {
+                VisualTree = frameworkElementFactory
+            };
         }
         
         private static DataTemplate CreatePinCellTemplate()

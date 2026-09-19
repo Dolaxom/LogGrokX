@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using DryIoc;
@@ -68,6 +68,7 @@ namespace LogGrokX
             _container.RegisterMapping<ILineIndex, LineIndex>();
             _container.Register<TimeIndex>(Reuse.Singleton);
             _container.Register<Indexer>(Reuse.Singleton);
+            _container.RegisterMapping<IComponentIndexer, Indexer>();
             _container.Register<IItemProvider<(int, string)>, LineProvider>();
 
             _container.RegisterDelegate<ILineParser>(
@@ -110,7 +111,7 @@ namespace LogGrokX
                     r.Resolve<Indexer>(),
                     r.Resolve<LogMetaInformation>()));
 
-            _container.RegisterDelegate<Func<SearchPattern, SearchDocumentViewModel>>(
+            _container.RegisterDelegate<Func<SearchPattern, ISearchDocument>>(
                 r =>
                 {
                     var logModelFacade = r.Resolve<LogModelFacade>();

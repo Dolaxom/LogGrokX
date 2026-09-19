@@ -40,7 +40,7 @@ namespace LogGrokX.Filter
         }
 
         private readonly Func<int> _percentGetter;
-        private readonly FilterSettings _filterSettings;
+        private readonly IFilterSettings _filterSettings;
         private readonly int _componentIndex;
         
         private int _cachedPercent;
@@ -49,7 +49,7 @@ namespace LogGrokX.Filter
         public ElementViewModel(
             string name,
             int componentIndex, 
-            FilterSettings filterSettings, 
+            IFilterSettings filterSettings, 
             Func<int> percentGetter)
         {
             Name = name;
