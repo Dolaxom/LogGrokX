@@ -82,6 +82,11 @@ properties (`IsGroupFirst` / `IsGroupLast` / `IsGroupContinuation`) on
   themes work. WPF-UI ships *keyed* styles (e.g. `UiGridViewColumnHeaderStyle`),
   so implicit styles are not always picked up — define overrides explicitly in
   `Bootstrap/App.xaml`.
+- **Window backdrop**: keep `WindowBackdropType="None"` on every `FluentWindow`
+  (`MainWindow`, `SupportWindow`, `SettingsWindow`) and `WindowBackdropType.None`
+  in `Theming/UiThemeService.cs`. The Mica material breaks composition of
+  AvalonDock's auto-hide flyout (`LayoutAutoHideWindowControl` is an `HwndHost`),
+  which then renders blank — most visibly in the light theme.
 - **AvalonDock themes**: the main `DockingManager` uses `Vs2013LightTheme` /
   `Vs2013DarkTheme`, but the search pane's inner `DockingManager` merges the
   light `AvalonDock.Themes.Metro` theme. Metro keys (e.g.

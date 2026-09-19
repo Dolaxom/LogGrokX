@@ -9,7 +9,7 @@
                  MinHeight="480"
                  Icon="pack://application:,,,/app.ico"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica"
+                 WindowBackdropType="None"
                  WindowCornerPreference="Round"
                  WindowStartupLocation="CenterOwner"
                  ShowInTaskbar="False">
