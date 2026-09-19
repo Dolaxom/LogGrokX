@@ -62,10 +62,7 @@ namespace LogGrokX
             _threadGroupingService.Changed += OnThreadGroupingChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
-            OpenSettings = new DelegateCommand(() =>
-            { 
-                OpenExternalFile(ApplicationSettings.SettingsFileName);
-            });
+            OpenSettings = new DelegateCommand(OpenSettingsWindow);
             OpenSupportCommand = new DelegateCommand(OpenSupport);
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
             ZoomInCommand = new DelegateCommand(() => _textZoomService.Increase());
@@ -77,36 +74,6 @@ namespace LogGrokX
                 CurrentDocument = document;
                 document.NavigateTo(index);
             };
-        }
-
-        private static void OpenExternalFile(string fileName)
-        {
-            void StartProcess(string verb)
-            {
-                using var process = new Process
-                {
-                    StartInfo =
-                    {
-                        FileName = fileName,
-                        UseShellExecute = true,
-                        Verb = verb
-                    }
-                };
-                process.Start();
-            }
-
-            try
-            {
-                StartProcess(string.Empty);
-            }
-            catch (Win32Exception e)
-            {
-                if (e.NativeErrorCode == 1155) // 'No application is associated with the specified file for this operation.'
-                {
-                    StartProcess("openas");
-                }
-                else throw;
-            }
         }
 
         public DocumentViewModel? CurrentDocument
@@ -174,6 +141,19 @@ namespace LogGrokX
         private static void OpenSupport()
         {
             var window = new SupportWindow();
+            if (Application.Current?.MainWindow is { } owner)
+                window.Owner = owner;
+            window.ShowDialog();
+        }
+
+        private void OpenSettingsWindow()
+        {
+            var viewModel = new LogGrokX.Settings.SettingsViewModel(
+                _applicationSettings,
+                _timelinePlacementService,
+                _threadGroupingService,
+                _textZoomService);
+            var window = new LogGrokX.Settings.SettingsWindow(viewModel);
             if (Application.Current?.MainWindow is { } owner)
                 window.Owner = owner;
             window.ShowDialog();
