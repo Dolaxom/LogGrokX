@@ -45,7 +45,9 @@ remaining responsive even on multi-gigabyte files.
   (for example Base64/JSON decoding) via `Transformations`.
 - **XOR-masked logs** — transparently de-obfuscate XOR-encoded log files.
 - **Light & dark themes** — switch theme from the title bar; chrome, log colors
-  and search highlighting follow the active theme.
+  and search highlighting follow the active theme. The window uses solid theme
+  colors rather than the Windows 11 Mica material, which is incompatible with
+  AvalonDock's auto-hide flyout.
 - **Crash dumps** — optional Windows Error Reporting local dumps for diagnostics.
 - **Support window** — version, commit, runtime/OS info and links to releases,
   issues and source, plus "copy diagnostics" and "open logs folder"
