@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Microsoft.Toolkit.HighPerformance;
 
 namespace LogGrokX.Data;
@@ -116,7 +117,7 @@ public class PooledList<T> : IList<T>, IList, IDisposable
     } 
     public void Dispose()
     {
-        ArrayPool<T>.Shared.Return(_data);
+        ArrayPool<T>.Shared.Return(_data, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
     }
     public IEnumerator<T> GetEnumerator()
     {

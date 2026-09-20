@@ -8,13 +8,15 @@ namespace LogGrokX
     public abstract class BaseLogLineViewModel : ItemViewModel, ILineMark
     {
         private readonly Selection _markedLines;
+        private readonly Action _onMarkedLinesChanged;
 
         protected BaseLogLineViewModel(int index, Selection markedLines)
         {
             Index = index;
             IndexViewModel = new LinePartViewModel(HashCode.Combine(-1, index), Index.ToString());
             _markedLines = markedLines;
-            _markedLines.Changed += () => InvokePropertyChanged(nameof(IsMarked));
+            _onMarkedLinesChanged = () => InvokePropertyChanged(nameof(IsMarked));
+            _markedLines.SubscribeWeak(_onMarkedLinesChanged);
         }
         
         public int Index { get; }

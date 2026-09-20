@@ -17,5 +17,7 @@ namespace LogGrokX
         public double LogFontSize { get; set; } = 12;
 
         public bool GroupByThread { get; set; }
+
+        public bool MergedFilesView { get; set; }
     }
 }

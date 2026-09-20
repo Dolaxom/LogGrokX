@@ -53,6 +53,11 @@ remaining responsive even on multi-gigabyte files.
   issues and source, plus "copy diagnostics" and "open logs folder"
   (`?` button in the title bar).
 - **Multiple documents** — dockable tabs powered by AvalonDock.
+- **Merged files view** — combine several opened logs into one time-ordered grid.
+  Columns are aligned across different log formats, rows are tinted per source,
+  and search, time-range filtering, thread grouping, JSON folding and marking
+  all work as in a single document. Toggled from the title bar or Settings and
+  persisted in `appsettings.yaml`.
 
 ## Requirements
 
@@ -85,7 +90,11 @@ dotnet test
 ## Benchmarks
 
 Micro-benchmarks for the core data layer live in `LogGrokX.Benchmarks` and are
-powered by [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet).
+powered by [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet). The
+suite covers line parsing (`LineParsingBenchmark`), stream loading
+(`LoaderBenchmark`) and the merge core (`MergeBenchmark`:
+`MergedLineOrder.Build`, `MergedLineOrder.BuildTimeIndex`,
+`TimeIndex.FindLineRange`).
 
 ```powershell
 dotnet run --project LogGrokX.Benchmarks -c Release
@@ -129,6 +138,10 @@ docking.
   search-result to source-line mapping.
 - `Search` / `Pipeline` — asynchronous regex search pipeline.
 - `Virtualization` — `IItemProvider`/`VirtualList` abstractions consumed by the UI.
+- `MergedLineOrder`, `MergeSource`, `MergedLineRef` — k-way, time-ordered merge
+  of several parsed logs.
+- `TimeIndex` — normalized, day-aware timestamps with monotonic bounds and range
+  lookup, shared by the single-log and merged timelines.
 
 ## Configuration
 
@@ -157,6 +170,8 @@ Settings:
     LogFontSize: 12
     # Group consecutive lines that share the same Thread field
     GroupByThread: false
+    # Combine all open documents into one time-ordered grid
+    MergedFilesView: false
 
   LogFormats:
     - Regex: ^(?<Time>\d{4}-\d{2}-\d{2}\s[^\s]+)\s+(?<Level>[^\s]+)\s+(?<Thread>[^\s]+)\s+(?<Component>[^\s]+)\s+(?<Message>.*)

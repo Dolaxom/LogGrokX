@@ -45,6 +45,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0"
@@ -111,11 +112,22 @@
 
                         <TextBlock Grid.Row="5"
                                    Grid.Column="0"
+                                   Margin="0,0,12,10"
+                                   VerticalAlignment="Center"
+                                   Text="Merged files view" />
+                        <CheckBox Grid.Row="5"
+                                  Grid.Column="1"
+                                  Margin="0,0,0,10"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding View.MergedFilesView, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="0"
                                    Grid.ColumnSpan="2"
                                    Margin="0,6,0,0"
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="Big line handling and grouping are applied when a log file is opened. Timeline placement, grouping toggle and font size apply immediately." />
+                                   Text="Big line handling and grouping are applied when a log file is opened. Timeline placement, grouping toggle, merged files view and font size apply immediately." />
                     </Grid>
                 </ScrollViewer>
             </TabItem>

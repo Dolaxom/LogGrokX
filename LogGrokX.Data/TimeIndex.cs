@@ -26,6 +26,20 @@ namespace LogGrokX.Data
 
         public long MaxTicks => _maxTicks;
 
+        public void Clear()
+        {
+            _ticks.Clear();
+            _dayBoundaries.Clear();
+            _lastTicks = 0;
+            _lastRawTicks = 0;
+            _lastDayNumber = long.MinValue;
+            _dayOffset = 0;
+            _minTicks = long.MaxValue;
+            _maxTicks = long.MinValue;
+            HasTime = false;
+            IsMonotonic = true;
+        }
+
         public void Add(long ticks)
         {
             if (ticks < 0)

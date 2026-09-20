@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using LogGrokX.Data;
@@ -6,10 +6,10 @@ using LogGrokX.Data.Index;
 
 namespace LogGrokX.Filter
 {
-    public class FilterSettings
-    {
-        private readonly Dictionary<int, HashSet<string>> _exclusions = new();
-        private readonly Indexer _indexer;
+public class FilterSettings : IFilterSettings
+{
+    private readonly Dictionary<int, HashSet<string>> _exclusions = new();
+    private readonly IComponentIndexer _indexer;
 
         public bool HaveExclusions => _exclusions.Values.Any(exclusions => exclusions.Count > 0);
 
@@ -27,7 +27,7 @@ namespace LogGrokX.Filter
 
         public event Action? LineRangeChanged;
 
-        public FilterSettings(Indexer indexer, LogMetaInformation metaInformation)
+        public FilterSettings(IComponentIndexer indexer, LogMetaInformation metaInformation)
         {
             _indexer = indexer;
         }

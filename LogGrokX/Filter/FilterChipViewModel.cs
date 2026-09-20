@@ -8,13 +8,13 @@ namespace LogGrokX.Filter
     public class FilterChipViewModel : ViewModelBase
     {
         private readonly int _indexedComponentIndex;
-        private readonly FilterSettings _filterSettings;
+        private readonly IFilterSettings _filterSettings;
 
         public FilterChipViewModel(
             string fieldName,
             int indexedComponentIndex,
             IReadOnlyCollection<string> excludedValues,
-            FilterSettings filterSettings)
+            IFilterSettings filterSettings)
         {
             FieldName = fieldName;
             _indexedComponentIndex = indexedComponentIndex;

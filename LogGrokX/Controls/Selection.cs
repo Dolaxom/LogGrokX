@@ -8,13 +8,29 @@ namespace LogGrokX.Controls
     public class Selection : IEnumerable<int>
     {
         private readonly HashSet<int> _indices = new();
+        private readonly List<WeakReference<Action>> _weakHandlers = new();
 
-        public (int min, int max)? Bounds => _indices.Count == 0 ? null : (_indices.Min(), _indices.Max()); 
-       
+        public (int min, int max)? Bounds => _indices.Count == 0 ? null : (_indices.Min(), _indices.Max());
+
+        public void SubscribeWeak(Action handler) => _weakHandlers.Add(new WeakReference<Action>(handler));
+
+        private void RaiseChanged()
+        {
+            Changed?.Invoke();
+
+            for (var i = _weakHandlers.Count - 1; i >= 0; i--)
+            {
+                if (_weakHandlers[i].TryGetTarget(out var handler))
+                    handler();
+                else
+                    _weakHandlers.RemoveAt(i);
+            }
+        }
+
         public void Add(int index)
         {
             _indices.Add(index);
-            Changed?.Invoke();
+            RaiseChanged();
         }
 
         public void AddRangeToValue(int selectedValue)
@@ -34,26 +50,26 @@ namespace LogGrokX.Controls
                 }
             }
 
-            Changed?.Invoke();
+            RaiseChanged();
         }
 
         public void Clear()
         {
             _indices.Clear();
-            Changed?.Invoke();
+            RaiseChanged();
         }
 
         public void Remove(in int index)
         {
             _indices.Remove(index);
-            Changed?.Invoke();
+            RaiseChanged();
         }
 
         public void Set(int index)
         {
             _indices.Clear();
             _indices.Add(index);
-            Changed?.Invoke();
+            RaiseChanged();
         }
 
         public bool Contains(int index) => _indices.Contains(index);

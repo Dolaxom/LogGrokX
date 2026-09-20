@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using LogGrokX.Data;
+using LogGrokX.Diagnostics;
 
 namespace LogGrokX.Controls.TextRender;
 
@@ -50,9 +52,14 @@ public class TextControl : Control
 
     protected override void OnRender(DrawingContext drawingContext)
     {
+        var perfStart = Stopwatch.GetTimestamp();
+        var allocStart = PerfProbe.AllocMark();
         var textLines = TextLines;
         if (textLines == null)
+        {
+            PerfProbe.RecordRender(perfStart);
             return;
+        }
 
         var highlightGeometries = GetHighlightGeometries(textLines, TextView.GetHighlightRegex(_textView));
 
@@ -85,6 +92,9 @@ public class TextControl : Control
                 foreground, drawingContext);
             verticalPosition += textLine.glyphLine.AdvanceHeight;
         }
+
+        PerfProbe.RecordAlloc("textRender", allocStart, PerfProbe.AllocMark());
+        PerfProbe.RecordRender(perfStart);
     }
 
     private static double GetHorizontalOffset(bool isCollapsible)

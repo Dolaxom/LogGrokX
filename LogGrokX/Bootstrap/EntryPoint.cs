@@ -24,7 +24,7 @@ namespace LogGrokX.Bootstrap
                 return;
             }
 
-            var command = args.SingleOrDefault();
+            var command = args.FirstOrDefault();
 
             ConfigureErrorReporting(command);
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -8,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using LogGrokX.Data;
+using LogGrokX.Diagnostics;
 
 namespace LogGrokX.Controls.TextRender;
 
@@ -142,6 +144,8 @@ public class TextView : Control, IClippingRectChangesAware
 
     void SetCollapsibleRanges(List<(int start, int length)>? collapsibleRanges)
     {
+        _isCollapsibleStateDirty = true;
+
         var sharedFoldingState = SharedFoldingState;
         UpdateFoldingStateRegistration(collapsibleRanges == null ? null : sharedFoldingState);
 
@@ -382,8 +386,14 @@ public class TextView : Control, IClippingRectChangesAware
 
     protected override Size MeasureOverride(Size constraint)
     {
+        var perfStart = Stopwatch.GetTimestamp();
+        var allocStart = PerfProbe.AllocMark();
         var text = TextModel;
-        if (text == null) return new Size(0, 0);
+        if (text == null)
+        {
+            PerfProbe.RecordTextMeasure(perfStart);
+            return new Size(0, 0);
+        }
 
         if (_textLines == null || _cachedTextModel != text || _cachedWidth < constraint.Width ||
             _isCollapsibleStateDirty || Math.Abs(_cachedFontSize - FontSize) > 0.001)
@@ -406,34 +416,37 @@ public class TextView : Control, IClippingRectChangesAware
                 _guideLinesControl = new GuideLinesControl();
                 Children.Add(_guideLinesControl);
             }
-        }
-        
-        var outlineData = _outlineData;
-        var visibleLineIndices = 
-            outlineData == null || outlineData.CollapsibleRegionsMachine.LineCount == _textLines.Count
-            ? Enumerable.Range(0, _textLines.Count)
-            : outlineData.CollapsibleRegionsMachine.Select((oi) => oi.index).ToList();
-        
-        var visibleLines = visibleLineIndices.Select(idx => (
-            textLine: _textLines[idx],
-            isCollapsible: outlineData?.CollapsibleLineIndices.Contains(idx) ?? false));
 
-        _textControl.TextLines = visibleLines.ToList();
+            var outlineData = _outlineData;
+            var visibleLineIndices = 
+                outlineData == null || outlineData.CollapsibleRegionsMachine.LineCount == _textLines.Count
+                ? Enumerable.Range(0, _textLines.Count)
+                : outlineData.CollapsibleRegionsMachine.Select((oi) => oi.index).ToList();
+
+            _textControl.TextLines = visibleLineIndices.Select(idx => (
+                textLine: _textLines[idx],
+                isCollapsible: outlineData?.CollapsibleLineIndices.Contains(idx) ?? false)).ToList();
+        }
+
         _textControl.Measure(constraint);
 
         var measuredSize = new Size(_textControl.DesiredSize.Width, _textControl.DesiredSize.Height);
+        PerfProbe.RecordAlloc("textMeasure", allocStart, PerfProbe.AllocMark());
+        PerfProbe.RecordTextMeasure(perfStart);
         return measuredSize;
     }
     
     protected override Size ArrangeOverride(Size arrangeBounds)
     {
         if (_textLines == null) return arrangeBounds;
-        
+
+        var allocStart = PerfProbe.AllocMark();
         var textControlRect =
             new Rect(0, 0, _textControl.DesiredSize.Width, _textControl.DesiredSize.Height);
         _textControl.Arrange(textControlRect);
 
         RearrangeOutlineChildren(GetClippingRect(), arrangeBounds);
+        PerfProbe.RecordAlloc("textArrange", allocStart, PerfProbe.AllocMark());
         return arrangeBounds;
     }
 

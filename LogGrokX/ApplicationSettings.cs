@@ -66,6 +66,15 @@ namespace LogGrokX
             SaveViewSettingValue("GroupByThread", groupByThread ? "true" : "false");
         }
 
+        public void SetMergedFilesView(bool mergedFilesView)
+        {
+            if (ViewSettings.MergedFilesView == mergedFilesView)
+                return;
+
+            ViewSettings.MergedFilesView = mergedFilesView;
+            SaveViewSettingValue("MergedFilesView", mergedFilesView ? "true" : "false");
+        }
+
         private static void SaveViewSettingValue(string key, string value)
         {
             try

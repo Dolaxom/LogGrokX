@@ -24,7 +24,7 @@ public class SubIndexer : IndexerBase
     }
 }
 
-public class Indexer : IndexerBase
+public class Indexer : IndexerBase, IComponentIndexer
 {
     private readonly object _componentsLocker = new();
 
@@ -118,6 +118,28 @@ public class Indexer : IndexerBase
     }
 
     public event Action<(int compnentNumber, IndexKey key)>? NewComponentAdded;
+
+    private readonly Dictionary<Action<int, string>, Action<(int compnentNumber, IndexKey key)>> _componentAddedHandlers = new();
+
+    event Action<int, string>? IComponentIndexer.ComponentAdded
+    {
+        add
+        {
+            if (value == null)
+                return;
+
+            void Handler((int compnentNumber, IndexKey key) added) =>
+                value(added.compnentNumber, added.key.GetComponent(added.compnentNumber).ToString());
+
+            _componentAddedHandlers[value] = Handler;
+            NewComponentAdded += Handler;
+        }
+        remove
+        {
+            if (value != null && _componentAddedHandlers.Remove(value, out var handler))
+                NewComponentAdded -= handler;
+        }
+    }
 
     public IndexKeyNum GetIndexKeyNum(int index) => _lineAndKeyIndex[index];
 

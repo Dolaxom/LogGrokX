@@ -1,14 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Input;
 using LogGrokX.Colors;
 using LogGrokX.Controls;
 using LogGrokX.Controls.TextRender;
 using LogGrokX.Data;
+using LogGrokX.Data.Index;
 using LogGrokX.Search;
 
 namespace LogGrokX
@@ -20,6 +24,8 @@ namespace LogGrokX
         private readonly LineProvider _lineProvider;
         private readonly ILineParser _lineParser;
         private readonly TransformationPerformer _transformationPerformer;
+        private readonly LogModelFacade _logModelFacade;
+        private readonly TimeIndex _timeIndex;
         private Stream _fileHolder;
 
         public DocumentViewModel(
@@ -30,7 +36,8 @@ namespace LogGrokX
             Selection markedLines,
             ColorSettings colorSettings,
             TransformationPerformer transformationPerformer,
-            TextViewSharedFoldingState foldingState)
+            TextViewSharedFoldingState foldingState,
+            TimeIndex timeIndex)
         {
             var logFileFilePath = logModelFacade.LogFile.FilePath;
             
@@ -53,6 +60,8 @@ namespace LogGrokX
             _transformationPerformer = transformationPerformer;
             _lineProvider = lineProvider;
             _lineParser = logModelFacade.LineParser;
+            _logModelFacade = logModelFacade;
+            _timeIndex = timeIndex;
             _markedLines.Changed += () => MarkedLinesChanged?.Invoke();
             _fileHolder = logModelFacade.LogFile.Open();
 
@@ -130,9 +139,52 @@ namespace LogGrokX
 
         public SearchViewModel SearchViewModel { get; }
 
+        public LogMetaInformation MetaInformation => _logModelFacade.MetaInformation;
+
+        public Indexer Indexer => _logModelFacade.Indexer;
+
+        internal ILineParser LineParser => _lineParser;
+
         public ColorSettings ColorSettings { get; }
 
         public TextViewSharedFoldingState FoldingState { get; }
+
+        public TimeIndex TimeIndex => _timeIndex;
+
+        public bool HasTime => _timeIndex.HasTime;
+
+        public int LineCount => _logModelFacade.LineCount;
+
+        public string GetTransformedLine(int lineNumber)
+        {
+            var lines = new (int, string)[1];
+            _lineProvider.Fetch(lineNumber, lines.AsSpan());
+            return _transformationPerformer.Transform(lines[0].Item2);
+        }
+
+        public IReadOnlyList<int> FindMatchingLines(Regex regex, CancellationToken cancellationToken)
+        {
+            const int chunkSize = 4096;
+            var total = _lineProvider.Count;
+            var matches = new List<int>();
+            var buffer = new (int, string)[chunkSize];
+
+            for (var start = 0; start < total; start += chunkSize)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var count = Math.Min(chunkSize, total - start);
+                _lineProvider.Fetch(start, buffer.AsSpan(0, count));
+
+                for (var i = 0; i < count; i++)
+                {
+                    if (regex.IsMatch(buffer[i].Item2))
+                        matches.Add(start + i);
+                }
+            }
+
+            return matches;
+        }
 
         public int GetFoldingComponentIndex(string transformedText)
         {

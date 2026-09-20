@@ -61,6 +61,8 @@ namespace LogGrokX.Bootstrap
         {
             base.OnStartup(e);
 
+            PerfProbe.Start();
+
             _container.Resolve<UiThemeService>().ApplySavedTheme();
 
             var mainWindow = _container.Resolve<MainWindow>();
@@ -86,6 +88,7 @@ namespace LogGrokX.Bootstrap
             container.Register<TimelinePlacementService>(Reuse.Singleton);
             container.Register<TextZoomService>(Reuse.Singleton);
             container.Register<ThreadGroupingService>(Reuse.Singleton);
+            container.Register<MergedFilesViewService>(Reuse.Singleton);
             container.Register<MarkedLinesViewModel>();
             container.Register<MainWindow>();
         }

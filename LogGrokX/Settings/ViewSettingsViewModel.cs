@@ -11,6 +11,7 @@ namespace LogGrokX.Settings
         private bool _timelineAtTop;
         private double _logFontSize;
         private bool _groupByThread;
+        private bool _mergedFilesView;
 
         public ViewSettingsViewModel(ViewSettings settings)
         {
@@ -19,6 +20,7 @@ namespace LogGrokX.Settings
             _timelineAtTop = settings.TimelineAtTop;
             _logFontSize = settings.LogFontSize;
             _groupByThread = settings.GroupByThread;
+            _mergedFilesView = settings.MergedFilesView;
         }
 
         public IReadOnlyList<ViewSettings.ViewBigLine> BigLineOptions { get; } =
@@ -83,6 +85,18 @@ namespace LogGrokX.Settings
                 if (_groupByThread == value)
                     return;
                 _groupByThread = value;
+                InvokePropertyChanged();
+            }
+        }
+
+        public bool MergedFilesView
+        {
+            get => _mergedFilesView;
+            set
+            {
+                if (_mergedFilesView == value)
+                    return;
+                _mergedFilesView = value;
                 InvokePropertyChanged();
             }
         }
