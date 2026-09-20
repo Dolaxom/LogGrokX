@@ -69,7 +69,7 @@ namespace LogGrokX.MergedView
                 pattern => new MergedSearchDocumentViewModel(this, pattern),
                 searchAutocompleteCache,
                 savedSearchPatternStore);
-            Search.CurrentLineChanged += NavigateTo;
+            Search.CurrentLineChanged += NavigateToCentered;
 
             TimeRangeFilter = new MergedTimeRangeFilterViewModel();
             TimeRangeFilter.Changed += ScheduleRebuild;
@@ -254,6 +254,39 @@ namespace LogGrokX.MergedView
             NavigateToLineRequest.Raise(lineNumber);
         }
 
+        public void NavigateToCentered(int lineNumber)
+        {
+            NavigateToLineRequest.Raise(lineNumber, true);
+        }
+
+        public bool TryNavigateToDocumentLine(DocumentViewModel document, int lineNumber)
+        {
+            var sourceIndex = -1;
+            for (var i = 0; i < _selectedSources.Count; i++)
+            {
+                if (_selectedSources[i].Document == document)
+                {
+                    sourceIndex = i;
+                    break;
+                }
+            }
+
+            if (sourceIndex < 0)
+                return false;
+
+            for (var i = 0; i < _mergedBuffer.Count; i++)
+            {
+                var line = _mergedBuffer[i];
+                if (line.SourceIndex == sourceIndex && line.LineNumber == lineNumber)
+                {
+                    NavigateToCentered(i);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void Dispose()
         {
             _rebuildTimer.Stop();
@@ -261,7 +294,7 @@ namespace LogGrokX.MergedView
             _threadGroupingService.Changed -= OnThreadGroupingChanged;
             TimeRangeFilter.Changed -= ScheduleRebuild;
             _filterSettings.ExclusionsChanged -= OnFilterChanged;
-            Search.CurrentLineChanged -= NavigateTo;
+            Search.CurrentLineChanged -= NavigateToCentered;
             _componentIndexer.Dispose();
             foreach (var document in Search.Documents.ToArray())
                 document.Dispose();

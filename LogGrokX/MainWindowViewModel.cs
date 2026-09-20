@@ -79,6 +79,9 @@ namespace LogGrokX
 
             MarkedLinesViewModel.NavigationRequested += (document, index) =>
             {
+                if (IsMergedViewActive && MergedViewModel.TryNavigateToDocumentLine(document, index))
+                    return;
+
                 CurrentDocument = document;
                 document.NavigateTo(index);
             };
@@ -146,6 +149,8 @@ namespace LogGrokX
             get => _mergedFilesViewService.IsEnabled;
             set => _mergedFilesViewService.SetEnabled(value);
         }
+
+        public bool IsMergedViewActive { get; set; }
 
         private void OnMergedFilesViewChanged()
         {

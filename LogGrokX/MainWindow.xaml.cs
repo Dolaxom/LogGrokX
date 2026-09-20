@@ -94,6 +94,7 @@ namespace LogGrokX
         {
             RestoreWindowPlacement();
             LoadLayout();
+            DockingManager.ActiveContentChanged += (_, _) => UpdateMergedViewActive();
             UpdateMergedDocument();
         }
 
@@ -103,6 +104,34 @@ namespace LogGrokX
                 ShowMergedDocument();
             else
                 HideMergedDocument();
+
+            UpdateMergedViewActive();
+        }
+
+        private void UpdateMergedViewActive()
+        {
+            if (_mergedDocument == null)
+            {
+                _viewModel.IsMergedViewActive = false;
+                return;
+            }
+
+            var active = DockingManager.ActiveContent;
+            if (active == null)
+                return;
+
+            if (ReferenceEquals(active, _mergedDocument.Content))
+            {
+                _viewModel.IsMergedViewActive = true;
+                return;
+            }
+
+            var isDocument = DockingManager.Layout.Descendents()
+                .OfType<LayoutDocument>()
+                .Any(document => ReferenceEquals(document.Content, active));
+
+            if (isDocument)
+                _viewModel.IsMergedViewActive = false;
         }
 
         private void ShowMergedDocument()
