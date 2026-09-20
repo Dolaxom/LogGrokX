@@ -59,6 +59,31 @@ remaining responsive even on multi-gigabyte files.
   all work as in a single document. Toggled from the title bar or Settings and
   persisted in `appsettings.yaml`.
 
+### Feature guides
+
+In-depth walkthroughs with Full HD screenshots, business context and code
+snippets for every feature live in [FEATURES.md](./FEATURES.md):
+
+- [⚡ Large file support](./FEATURES.md#-large-file-support)
+- [🧩 Configurable log formats](./FEATURES.md#-configurable-log-formats)
+- [📊 Column and field indexing](./FEATURES.md#-column-and-field-indexing)
+- [🔍 Search](./FEATURES.md#-regex-search)
+- [🧾 Filtering](./FEATURES.md#-filtering)
+- [⏳ Time filter and timeline](./FEATURES.md#-time-filter-and-timeline)
+- [📦 JSON folding](./FEATURES.md#-json-folding)
+- [🎨 Color rules](./FEATURES.md#-color-rules)
+- [📌 Marked lines](./FEATURES.md#-marked-lines)
+- [🔠 Text zoom](./FEATURES.md#-text-zoom)
+- [🎯 Centered navigation](./FEATURES.md#-centered-navigation)
+- [🧵 Thread grouping](./FEATURES.md#-thread-grouping)
+- [🔁 Text transformations](./FEATURES.md#-text-transformations)
+- [🔐 XOR-masked logs](./FEATURES.md#-xor-masked-logs)
+- [🌗 Light and dark themes](./FEATURES.md#-light-and-dark-themes)
+- [🩺 Crash dumps](./FEATURES.md#-crash-dumps)
+- [🛟 Support window](./FEATURES.md#-support-window)
+- [📑 Multiple documents](./FEATURES.md#-multiple-documents)
+- [🧬 Merged files view](./FEATURES.md#-merged-files-view)
+
 ## Requirements
 
 - Windows
