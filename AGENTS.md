@@ -45,7 +45,13 @@ dotnet format LogGrokX.sln
 
 Key areas in `LogGrokX.Data`: `Loader`/`LoaderImpl` (buffered line-aware
 reader), `RegexBasedLineParser`, `IndexTree`/`LineIndex`/`SearchLineIndex`,
-`Search`/`Pipeline`, `Virtualization`.
+`Search`/`Pipeline`, `Virtualization`, and `MergedLineOrder`/`MergeSource`/
+`MergedLineRef`/`TimeIndex` (k-way, time-ordered merge of several parsed logs).
+
+`LogGrokX.Benchmarks` covers line parsing (`LineParsingBenchmark`), stream
+loading (`LoaderBenchmark`) and the merge core (`MergeBenchmark`:
+`MergedLineOrder.Build`, `MergedLineOrder.BuildTimeIndex`,
+`TimeIndex.FindLineRange`).
 
 The UI layer uses **WPF-UI 4.3.0** (Fluent controls/theming) and
 **AvalonDock 5** for docking. Branding/window title is **LogGrokX** plus the
@@ -59,6 +65,21 @@ properties (`IsGroupFirst` / `IsGroupLast` / `IsGroupContinuation`) on
 `Controls/ListControls/VirtualizingStackPanel` and rendered by
 `Styles/ListViewItemStyle.xaml`. The support window is `SupportWindow.xaml` /
 `SupportViewModel` (opened through `OpenSupportCommand`).
+
+The **merged files view** combines several opened documents into one
+time-ordered grid and lives in `MergedView/`: `MergedViewModel` owns the merge,
+filtering, timeline and navigation; `MergedDocumentItem` holds one document's
+parsed lines; `MergedSchema`/`MergedComponentIndexer` align columns across
+formats; `MergedSearchDocumentViewModel` and `MergedTimeRangeFilterViewModel`
+mirror the single-log search and time-range panes; `MergedViewPalette` supplies
+per-source colors; `MergedLineViewModel`/`ListItemProvider` adapt merged rows to
+the grid. The view is toggled by `MergedFilesViewService` (title bar / Settings,
+persisted as `ViewSettings.MergedFilesView`) and rendered by
+`Styles/MergedViewTemplate.xaml`. Cross-format rules: identical column names are
+aligned case-insensitively, plain-text/unrecognized lines put the whole line into
+`Message`, and `Level`/`Severity` are unified into a single `Severity` column.
+Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
+`MergedSchemaTests` (`LogGrokX.Tests`).
 
 ## Conventions
 
@@ -98,6 +119,14 @@ properties (`IsGroupFirst` / `IsGroupLast` / `IsGroupContinuation`) on
   templates bind it via `textRender:TextView.SharedFoldingState`. The marked-lines
   view must use `Document.FoldingState` and the same `TextModel.UniqueId` as the
   grid's JSON component, otherwise expansion falls out of sync.
+- **Merged timeline range**: `MergedViewModel` keeps the **full** merged buffer
+  (`_mergedBuffer`) and derives the timeline axis (`Minimum`/`Maximum`,
+  `TotalLineCount`, `TimelineSegments`, `TimeRangeFilter.Refresh`) from it, while
+  the grid/search run on the filtered `_visibleBuffer` mapped back through
+  `_visibleToFull` (`VisibleLines`, `GetVisibleFullIndexMap`, `GetVisibleIndex`).
+  Deriving the axis from the filtered buffer makes
+  `MergedTimeRangeFilterViewModel.Refresh` clamp the handles to the shrunken
+  bounds and silently reset the time range.
 - The app writes diagnostic logs to `%LOCALAPPDATA%\LogGrokX\`.
 - Runtime configuration is `appsettings.yaml` (watched and hot-reloaded),
   next to the executable.
