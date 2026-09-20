@@ -181,18 +181,47 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
             SetVerticalOffset(index - _viewPort.Height / 2.0);
             UpdateLayout();
 
-            var target = _visibleItems.Search(v => v.Index == index);
-            if (target == null)
-                return;
+            for (var attempt = 0; attempt < 16; attempt++)
+            {
+                var target = _visibleItems.Search(v => v.Index == index);
+                if (target == null)
+                {
+                    var firstVisible = _visibleItems.Count > 0 ? _visibleItems[0].Index : 0;
+                    var lastVisible = _visibleItems.Count > 0 ? _visibleItems[^1].Index : 0;
+                    var offsetBeforeBuild = VerticalOffset;
 
-            var targetCenter = (target.Value.UpperBound + target.Value.LowerBound) / 2.0;
-            var viewportCenter = _viewPortHeightInPixels / 2.0;
-            var delta = targetCenter - viewportCenter;
+                    if (index < firstVisible)
+                        ScrollUp(_viewPortHeightInPixels);
+                    else if (index > lastVisible)
+                        ScrollDown(_viewPortHeightInPixels);
+                    else
+                        return;
 
-            if (Greater(delta, 0.0))
-                ScrollDown(delta);
-            else if (Less(delta, 0.0))
-                ScrollUp(-delta);
+                    UpdateLayout();
+
+                    if (Math.Abs(VerticalOffset - offsetBeforeBuild) < Epsilon)
+                        return;
+                    continue;
+                }
+
+                var targetCenter = (target.Value.UpperBound + target.Value.LowerBound) / 2.0;
+                var viewportCenter = _viewPortHeightInPixels / 2.0;
+                var delta = targetCenter - viewportCenter;
+
+                if (!Greater(delta, 0.0) && !Less(delta, 0.0))
+                    return;
+
+                var offsetBeforeScroll = VerticalOffset;
+                if (Greater(delta, 0.0))
+                    ScrollDown(delta);
+                else
+                    ScrollUp(-delta);
+
+                UpdateLayout();
+
+                if (Math.Abs(VerticalOffset - offsetBeforeScroll) < Epsilon)
+                    return;
+            }
         }
 
         private void NavigateUp()

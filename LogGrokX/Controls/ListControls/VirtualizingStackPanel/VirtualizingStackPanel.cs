@@ -289,7 +289,10 @@ namespace LogGrokX.Controls.ListControls.VirtualizingStackPanel
                 itm.Content = context;
                 if (itm.IsSelected) itm.IsSelected = false;
 
-                item.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
+                itm.InvalidateMeasure();
+                foreach (var descendant in itm.GetVisualChildren<FrameworkElement>())
+                    descendant.InvalidateMeasure();
+                itm.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
             }
 
             if (isNewElement)
