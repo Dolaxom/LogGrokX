@@ -25,6 +25,7 @@ namespace LogGrokX.MergedView
         private SearchPattern _searchPattern;
         private int[] _matchedIndices = Array.Empty<int>();
         private MergedLineRef[] _buffer = Array.Empty<MergedLineRef>();
+        private int[]? _fullIndexMap;
         private MergedDocumentItem[] _sources = Array.Empty<MergedDocumentItem>();
         private bool[] _matchBuckets = Array.Empty<bool>();
         private int? _currentItemIndex;
@@ -100,7 +101,7 @@ namespace LogGrokX.MergedView
 
         public int CurrentMatchLine =>
             CurrentItemIndex is { } index && index >= 0 && index < _matchedIndices.Length
-                ? _matchedIndices[index]
+                ? MapToFull(_matchedIndices[index])
                 : -1;
 
         public int? CurrentItemIndex
@@ -178,6 +179,7 @@ namespace LogGrokX.MergedView
             {
                 _matchedIndices = Array.Empty<int>();
                 _buffer = Array.Empty<MergedLineRef>();
+                _fullIndexMap = null;
                 _sources = Array.Empty<MergedDocumentItem>();
                 Lines.Reset(Array.Empty<ItemViewModel>(), Array.Empty<ItemViewModel>());
                 MatchBuckets = Array.Empty<bool>();
@@ -191,8 +193,9 @@ namespace LogGrokX.MergedView
                 return;
             }
 
-            var buffer = _merged.MergedLines.ToArray();
+            var buffer = _merged.VisibleLines.ToArray();
             var sources = _merged.Sources.ToArray();
+            var fullIndexMap = _merged.GetVisibleFullIndexMap();
             var regex = _searchPattern.GetRegex(RegexOptions.Compiled);
             var token = newCts.Token;
 
@@ -203,11 +206,11 @@ namespace LogGrokX.MergedView
             SearchProgress = 0;
             CurrentItemIndex = null;
 
-            _ = RunSearchAsync(buffer, sources, regex, token);
+            _ = RunSearchAsync(buffer, sources, fullIndexMap, regex, token);
         }
 
-        private async Task RunSearchAsync(MergedLineRef[] buffer, MergedDocumentItem[] sources, Regex regex,
-            CancellationToken token)
+        private async Task RunSearchAsync(MergedLineRef[] buffer, MergedDocumentItem[] sources, int[]? fullIndexMap,
+            Regex regex, CancellationToken token)
         {
             try
             {
@@ -235,6 +238,7 @@ namespace LogGrokX.MergedView
                     return;
 
                 _matchedIndices = matched.ToArray();
+                _fullIndexMap = fullIndexMap;
                 RebuildResults();
             }
             catch (OperationCanceledException)
@@ -265,8 +269,14 @@ namespace LogGrokX.MergedView
         private ItemViewModel CreateResult(int mergedIndex)
         {
             var line = _buffer[mergedIndex];
-            return new MergedLineViewModel(_sources[line.SourceIndex], line.LineNumber, line.Ticks, mergedIndex);
+            return new MergedLineViewModel(_sources[line.SourceIndex], line.LineNumber, line.Ticks,
+                MapToFull(mergedIndex));
         }
+
+        private int MapToFull(int visibleIndex) =>
+            _fullIndexMap is { } map && visibleIndex >= 0 && visibleIndex < map.Length
+                ? map[visibleIndex]
+                : visibleIndex;
 
         private bool[] BuildBuckets()
         {
@@ -277,7 +287,7 @@ namespace LogGrokX.MergedView
 
             foreach (var index in _matchedIndices)
             {
-                var bucket = (int)((long)index * MatchBucketCount / total);
+                var bucket = (int)((long)MapToFull(index) * MatchBucketCount / total);
                 if (bucket < 0) bucket = 0;
                 if (bucket >= MatchBucketCount) bucket = MatchBucketCount - 1;
                 buckets[bucket] = true;
@@ -307,7 +317,7 @@ namespace LogGrokX.MergedView
 
             CurrentItemIndex = resultIndex;
             NavigateToLineRequest.Raise(resultIndex);
-            NavigateToIndexRequested?.Invoke(_matchedIndices[resultIndex]);
+            NavigateToIndexRequested?.Invoke(MapToFull(_matchedIndices[resultIndex]));
         }
     }
 }

@@ -32,6 +32,8 @@ namespace LogGrokX.MergedView
         private readonly HashSet<DocumentViewModel> _subscribed = new();
         private readonly List<MergedDocumentItem> _selectedSources = new();
         private readonly List<MergedLineRef> _mergedBuffer = new();
+        private readonly List<MergedLineRef> _visibleBuffer = new();
+        private readonly List<int> _visibleToFull = new();
         private readonly List<MergeSource> _mergeSources = new();
         private readonly TimeIndex _mergedTimeIndex = new();
         private readonly DispatcherTimer _rebuildTimer;
@@ -45,6 +47,7 @@ namespace LogGrokX.MergedView
         private IReadOnlyList<string> _lastFields = Array.Empty<string>();
 
         private bool _isActive;
+        private bool _isFiltered;
         private int _nextColorIndex;
         private int _currentItemIndex;
         private int _firstVisibleIndex = -1;
@@ -173,7 +176,9 @@ namespace LogGrokX.MergedView
 
         public event Action? Rebuilt;
 
-        internal IReadOnlyList<MergedLineRef> MergedLines => _mergedBuffer;
+        internal IReadOnlyList<MergedLineRef> VisibleLines => _isFiltered ? _visibleBuffer : _mergedBuffer;
+
+        internal int[]? GetVisibleFullIndexMap() => _isFiltered ? _visibleToFull.ToArray() : null;
 
         internal IReadOnlyList<MergedDocumentItem> Sources => _selectedSources;
 
@@ -251,12 +256,16 @@ namespace LogGrokX.MergedView
 
         public void NavigateTo(int lineNumber)
         {
-            NavigateToLineRequest.Raise(lineNumber);
+            var index = GetVisibleIndex(lineNumber);
+            if (index >= 0)
+                NavigateToLineRequest.Raise(index);
         }
 
         public void NavigateToCentered(int lineNumber)
         {
-            NavigateToLineRequest.Raise(lineNumber, true);
+            var index = GetVisibleIndex(lineNumber);
+            if (index >= 0)
+                NavigateToLineRequest.Raise(index, true);
         }
 
         public bool TryNavigateToDocumentLine(DocumentViewModel document, int lineNumber)
@@ -426,14 +435,15 @@ namespace LogGrokX.MergedView
                 _mergeSources.Add(new MergeSource(item.Document.LineCount, item.Document.TimeIndex));
 
             MergedLineOrder.Build(_mergeSources, _mergedBuffer);
-            ApplyLineFilters();
+            MergedLineOrder.BuildTimeIndex(_mergedBuffer, _mergedTimeIndex);
+            _isFiltered = BuildVisibleBuffer();
 
+            var visibleLines = _isFiltered ? _visibleBuffer : _mergedBuffer;
             Lines.Reset(
                 Array.Empty<ItemViewModel>(),
-                new VirtualList<MergedLineRef, ItemViewModel>(new ListItemProvider<MergedLineRef>(_mergedBuffer),
+                new VirtualList<MergedLineRef, ItemViewModel>(new ListItemProvider<MergedLineRef>(visibleLines),
                     CreateLine));
 
-            MergedLineOrder.BuildTimeIndex(_mergedBuffer, _mergedTimeIndex);
             TimeRangeFilter.Refresh(_mergedTimeIndex, _mergedBuffer.Count);
             TimelineSegments = BuildSegments(_mergedBuffer, _selectedSources);
             TotalLineCount = _mergedBuffer.Count;
@@ -508,21 +518,20 @@ namespace LogGrokX.MergedView
             return lines.Select(line => line[fieldIndex].OriginalText ?? string.Empty).Distinct();
         }
 
-        private void ApplyLineFilters()
+        private bool BuildVisibleBuffer()
         {
-            if (_mergedBuffer.Count == 0)
-                return;
+            _visibleBuffer.Clear();
+            _visibleToFull.Clear();
 
             var exclusions = _filterSettings.Exclusions;
             var timeRange = TimeRangeFilter.TimeRange;
             var lineRange = TimeRangeFilter.LineRange;
 
             if (exclusions.Count == 0 && timeRange == null && lineRange == null)
-                return;
+                return false;
 
             var sourceExclusions = BuildSourceExclusions(exclusions);
 
-            var write = 0;
             for (var i = 0; i < _mergedBuffer.Count; i++)
             {
                 var line = _mergedBuffer[i];
@@ -538,11 +547,11 @@ namespace LogGrokX.MergedView
                     !_selectedSources[line.SourceIndex].Document.Indexer.IsLineIncluded(line.LineNumber, documentExclusions))
                     continue;
 
-                _mergedBuffer[write++] = line;
+                _visibleBuffer.Add(line);
+                _visibleToFull.Add(i);
             }
 
-            if (write < _mergedBuffer.Count)
-                _mergedBuffer.RemoveRange(write, _mergedBuffer.Count - write);
+            return true;
         }
 
         private Dictionary<int, IReadOnlyDictionary<int, IEnumerable<string>>> BuildSourceExclusions(
@@ -584,7 +593,35 @@ namespace LogGrokX.MergedView
         private void UpdateScrollPosition()
         {
             var firstVisible = _firstVisibleIndex;
-            ScrollPosition = firstVisible >= 0 && firstVisible < TotalLineCount ? firstVisible : -1;
+            if (firstVisible < 0)
+            {
+                ScrollPosition = -1;
+                return;
+            }
+
+            if (_isFiltered)
+            {
+                ScrollPosition = firstVisible < _visibleToFull.Count ? _visibleToFull[firstVisible] : -1;
+                return;
+            }
+
+            ScrollPosition = firstVisible < _mergedBuffer.Count ? firstVisible : -1;
+        }
+
+        private int GetVisibleIndex(int mergedIndex)
+        {
+            if (!_isFiltered)
+                return mergedIndex;
+
+            if (_visibleToFull.Count == 0)
+                return -1;
+
+            var index = _visibleToFull.BinarySearch(mergedIndex);
+            if (index >= 0)
+                return index;
+
+            var insertion = ~index;
+            return insertion < _visibleToFull.Count ? insertion : _visibleToFull.Count - 1;
         }
 
         private static IReadOnlyList<TimelineSegment> BuildSegments(IReadOnlyList<MergedLineRef> lines,
