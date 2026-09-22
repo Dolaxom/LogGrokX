@@ -41,6 +41,7 @@ Invoke-Harness 'B. branch: sequential parse + sequential index' $headData '0' '0
 Invoke-Harness 'C. branch: sequential parse + parallel index'   $headData '0' '1'
 Invoke-Harness 'D. branch: parallel parse + parallel index'     $headData '1' '1'
 Invoke-Harness 'E. branch: parallel parse + sequential index'   $headData '1' '0'
+Invoke-Harness 'F. branch: defaults (auto)'                     $headData '' ''
 
 Write-Host ""
 Write-Host "done. Remove the baseline worktree with: git worktree remove $baseDir" -ForegroundColor DarkGray

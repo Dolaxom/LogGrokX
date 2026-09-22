@@ -7,15 +7,17 @@ Notes on the hot paths of LogGrokX and on what the core optimizations actually d
 Loading is split into three stages:
 
 1. `LoaderImpl` reads the file in 1 MB blocks and slices it into lines.
-2. `LineProcessor` decodes and parses lines. From 4 logical cores up the lines
+2. `LineProcessor` decodes and parses lines. From 2 logical cores up the lines
    are grouped into line-aligned raw chunks (1 MB) and parsed by thread-pool
    workers, and a dedicated merge thread applies parsed chunks **strictly in
    order**; below that they are parsed inline, on the loader thread, without the
    extra copy. Override with `LOGGROKX_PARALLEL_PARSING=0|1`.
 3. `ParsedBufferConsumer` applies parsed buffers to `LineIndex` and `Indexer`.
    It has two modes:
-   - sequential (default): one thread walks each buffer and updates the indexes;
-   - parallel (`LOGGROKX_PARALLEL_INDEXING=1`): workers do the order-independent
+   - sequential (default below 8 logical cores): one thread walks each buffer and
+     updates the indexes;
+   - parallel (default from 8 logical cores, `LOGGROKX_PARALLEL_INDEXING=0|1`
+     overrides): workers do the order-independent
      part (walking line meta information, hashing keys, resolving key numbers and
      index trees, registering new component values) and a single merge thread
      assigns line numbers and appends to the per-key trees in buffer order.
@@ -36,7 +38,33 @@ Invariants the parallel path must preserve (covered by
 `LineProcessor.ParallelParsingOverride` forces one of the two paths in tests, and
 both paths are covered by the same test.
 
-### Measurements
+### Memory bound of the parallel pipeline
+
+The amount of queued work is `clamp(ProcessorCount - 1, 2, 16)` chunks
+(`LOGGROKX_MAX_INFLIGHT_CHUNKS` overrides), so the extra memory of the parallel
+path does not grow past 16 cores and does not depend on the file size. Raw chunk
+buffers come from a private `ArrayPool` owned by the `LineProcessor`: with
+`ArrayPool.Shared` the per-core caches kept about 45 MB alive after loading on a
+32-core machine (retained after full GC: 71 MB vs 25 MB).
+
+### Measurements on 32 cores
+
+Local Windows machine, 32 logical cores, `tools\perf-compare.cmd`, best of two
+runs after a warm-up. Measured **before** the in-flight cap and the private pool
+were added, with parallel indexing on by default:
+
+| configuration | 2M lines / 168 MB | peak WS | 25M lines / 2.1 GB | peak WS |
+| --- | --- | --- | --- | --- |
+| `master` | 508 ms | 149 MB | 6430 ms | 761 MB |
+| seq parse + seq index | 577 ms | 154 MB | 6989 ms | 1171 MB |
+| seq parse + par index | 504 ms | 157 MB | 5957 ms | 1137 MB |
+| par parse + par index | 308 ms | 427 MB | 2772 ms | 2007 MB |
+| par parse + seq index | 335 ms | 435 MB | 3965 ms | 1959 MB |
+
+Search on the 2.1 GB file: literal 1875 → ~630 ms, regex with 5M hits
+2258 → ~1460 ms.
+
+### Measurements on 4 cores
 
 4 cores (AMD EPYC 7763, GitHub runner), 2M lines / ~230 MB, Server GC, best of
 three runs after a warm-up run:
@@ -59,11 +87,11 @@ Search on the same file (best of three):
 
 Conclusions:
 
-- parallel **parsing** pays off: 494 ms vs 621 ms (1.26x), so it is on by default
-  from 4 cores up;
-- parallel **indexing** does not: once parsing is parallel it changes nothing
-  (476 ms vs 494 ms, within run-to-run noise) and it costs extra memory, so it
-  stays opt-in. What is left on the merge thread is cheap (one array append, one
+- parallel **parsing** pays off: 494 ms vs 621 ms (1.26x) on 4 cores, 1.37x on
+  2 cores with a 2 GB file, so it is on by default from 2 cores up;
+- parallel **indexing** does not pay off on 4 cores (476 ms vs 494 ms, within
+  run-to-run noise) but does on 32 cores with a large file (2772 vs 3965 ms), so
+  it is on by default from 8 cores up. What is left on the merge thread is cheap (one array append, one
   `List.Add` per line); the remaining serial cost is the appends themselves,
   which would need per-key partitioning to spread;
 - the sequential-parse configuration on the runner is slower than `master`

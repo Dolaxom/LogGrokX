@@ -43,10 +43,9 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelIndexingOverride;
 
-        // Parallel key resolution is opt-in: measured on 4 cores it does not speed
-        // loading up (the merge thread is not the bottleneck once parsing runs in
-        // parallel) but costs extra memory. See docs/performance-notes.md.
-        private const bool ParallelIndexingDefault = false;
+        // Parallel key resolution only pays off with many cores: no gain on 4 cores,
+        // 1.4x on 32 cores with a 2 GB file. See docs/performance-notes.md.
+        private const int MinProcessorCountForParallelIndexing = 8;
 
         /// <summary>
         /// <c>LOGGROKX_PARALLEL_INDEXING=0</c> disables parallel preparation,
@@ -71,9 +70,11 @@ namespace LogGrokX.Data
             _logMetaInformation = logMetaInformation;
             _stringPool = stringPool;
             _componentsCount = logMetaInformation.IndexedFieldNumbers.Length;
-            _isParallel = ParallelIndexingOverride ?? EnvironmentSwitch ?? ParallelIndexingDefault;
+            _isParallel = ParallelIndexingOverride
+                          ?? EnvironmentSwitch
+                          ?? Environment.ProcessorCount >= MinProcessorCountForParallelIndexing;
 
-            var capacity = Math.Max(Environment.ProcessorCount, 4);
+            var capacity = Math.Max(LineProcessor.GetInFlightChunkLimit(), 4);
             if (_isParallel)
                 _preparedQueue = new BlockingCollection<Task<PreparedBuffer>>(capacity);
             else

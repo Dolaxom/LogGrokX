@@ -20,11 +20,16 @@ namespace LogGrokX.Data
     /// every downstream index stay bit-identical to the sequential implementation.
     /// </para>
     /// <para>
-    /// The parallel path is used from 4 logical cores up (measured on 4 cores:
-    /// 493 ms vs 643 ms for 2M lines, at the cost of a higher peak working set).
-    /// Below that the indexing thread already saturates the machine, so lines are
-    /// parsed inline, without the extra chunk copy.
+    /// The parallel path is used from 2 logical cores up (measured: 1.37x on 2 cores
+    /// and a 2 GB file, 1.26x on 4 cores, 1.6-2.3x on 32 cores); on a single core
+    /// lines are parsed inline, without the extra chunk copy.
     /// <c>LOGGROKX_PARALLEL_PARSING=0|1</c> overrides the decision.
+    /// </para>
+    /// <para>
+    /// The number of chunks in flight is capped (<see cref="MaxInFlightChunks"/>,
+    /// override with <c>LOGGROKX_MAX_INFLIGHT_CHUNKS</c>), so the extra memory of the
+    /// parallel path does not grow with the core count, and raw chunk buffers come
+    /// from a private pool that is released together with the loader.
     /// </para>
     /// </summary>
     public class LineProcessor : ILineDataConsumer, IDisposable
@@ -59,7 +64,25 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelParsingOverride;
 
-        private const int MinProcessorCountForParallelParsing = 4;
+        private const int MinProcessorCountForParallelParsing = 2;
+
+        internal const int MaxInFlightChunks = 16;
+
+        /// <summary>
+        /// Bounded amount of work queued between pipeline stages:
+        /// <c>clamp(ProcessorCount - 1, 2, MaxInFlightChunks)</c>, or the value of
+        /// <c>LOGGROKX_MAX_INFLIGHT_CHUNKS</c>.
+        /// </summary>
+        internal static int GetInFlightChunkLimit()
+        {
+            if (int.TryParse(Environment.GetEnvironmentVariable("LOGGROKX_MAX_INFLIGHT_CHUNKS"), out var configured)
+                && configured > 0)
+                return configured;
+
+            return Math.Clamp(Environment.ProcessorCount - 1, 2, MaxInFlightChunks);
+        }
+
+        private readonly ArrayPool<byte>? _rawChunkPool;
 
         private static bool IsParallelParsingEnabled() =>
             Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING") switch
@@ -87,7 +110,9 @@ namespace LogGrokX.Data
 
             if (_isParallel)
             {
-                var inFlightChunks = Math.Max(Environment.ProcessorCount - 1, 2);
+                var inFlightChunks = GetInFlightChunkLimit();
+                // in flight + the chunk being filled + the one being merged
+                _rawChunkPool = ArrayPool<byte>.Create(RawChunkSizeBytes, inFlightChunks + 2);
                 _parsedChunks = new BlockingCollection<Task<ParsedChunk>>(inFlightChunks);
                 _mergeTask = Task.Factory.StartNew(MergeParsedChunks, CancellationToken.None,
                     TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -110,14 +135,14 @@ namespace LogGrokX.Data
             var chunk = _currentRawChunk;
             if (chunk == null)
             {
-                chunk = RawChunk.Rent(RawChunkSizeBytes);
+                chunk = RawChunk.Rent(_rawChunkPool!, RawChunkSizeBytes);
                 _currentRawChunk = chunk;
             }
 
             if (!chunk.TryAdd(lineOffset, lineData))
             {
                 DispatchCurrentChunk();
-                chunk = RawChunk.Rent(Math.Max(RawChunkSizeBytes, lineData.Length));
+                chunk = RawChunk.Rent(_rawChunkPool!, Math.Max(RawChunkSizeBytes, lineData.Length));
                 _currentRawChunk = chunk;
                 if (!chunk.TryAdd(lineOffset, lineData))
                     throw new InvalidOperationException("Unable to store line data.");
@@ -352,15 +377,17 @@ namespace LogGrokX.Data
         private sealed class RawChunk : IDisposable
         {
             private byte[] _buffer = Array.Empty<byte>();
+            private ArrayPool<byte> _pool = ArrayPool<byte>.Shared;
             private readonly List<(long lineOffset, int start, int length)> _lines = new(1024);
             private int _length;
             private bool _isReturned;
 
-            public static RawChunk Rent(int capacity)
+            public static RawChunk Rent(ArrayPool<byte> pool, int capacity)
             {
                 return new RawChunk
                 {
-                    _buffer = ArrayPool<byte>.Shared.Rent(capacity)
+                    _pool = pool,
+                    _buffer = pool.Rent(capacity)
                 };
             }
 
@@ -389,7 +416,7 @@ namespace LogGrokX.Data
                     return;
 
                 _isReturned = true;
-                ArrayPool<byte>.Shared.Return(_buffer);
+                _pool.Return(_buffer);
                 _buffer = Array.Empty<byte>();
                 _lines.Clear();
             }

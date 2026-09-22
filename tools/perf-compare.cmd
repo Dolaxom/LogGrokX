@@ -24,6 +24,7 @@ call :run "B. branch: sequential parse + sequential index" "%REPO%/LogGrokX.Data
 call :run "C. branch: sequential parse + parallel index"   "%REPO%/LogGrokX.Data/LogGrokX.Data.csproj"    "0" "1"
 call :run "D. branch: parallel parse + parallel index"     "%REPO%/LogGrokX.Data/LogGrokX.Data.csproj"    "1" "1"
 call :run "E. branch: parallel parse + sequential index"   "%REPO%/LogGrokX.Data/LogGrokX.Data.csproj"    "1" "0"
+call :run "F. branch: defaults (auto)"                     "%REPO%/LogGrokX.Data/LogGrokX.Data.csproj"    ""  ""
 
 echo.
 echo done. Remove the baseline worktree with: git worktree remove "%BASEDIR%"
