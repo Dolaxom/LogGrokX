@@ -60,11 +60,8 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelParsingOverride;
 
-        private static bool IsParallelParsingEnabledByEnvironment()
-        {
-            var value = Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING");
-            return value is "1" or "true" or "True";
-        }
+        private static bool IsParallelParsingEnabledByEnvironment() =>
+            Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING") is "1" or "true" or "True";
 
         public LineProcessor(LogFile logFile,
             LogMetaInformation metaInformation,

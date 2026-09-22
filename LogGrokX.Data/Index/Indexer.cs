@@ -96,25 +96,55 @@ public class Indexer : IndexerBase, IComponentIndexer
 
     public void Add(IndexKey key, int lineNumber)
     {
-        if (!KeysToNumbers.TryGetValue(key, out var keyNumber))
-            keyNumber = AddNewKey(key);
+        var (keyNumber, index) = ResolveKey(key, null);
+        Append(keyNumber, index, lineNumber);
+    }
 
-        _lineAndKeyIndex.Add(keyNumber);
-            
+    /// <summary>
+    /// Resolves a key to its number and index tree. Thread-safe: this is the
+    /// expensive, order-independent part of indexing (hashing the key, dictionary
+    /// lookups, registering new components) and is done by parallel workers.
+    /// <para>
+    /// When <paramref name="pendingNotifications"/> is provided, new-component
+    /// notifications are collected instead of being raised, so that the merge
+    /// thread can raise them in line order, from a single thread.
+    /// </para>
+    /// </summary>
+    internal (IndexKeyNum KeyNumber, IndexTree<int, SimpleLeaf<int>> Index) ResolveKey(IndexKey key,
+        List<(int componentNumber, IndexKey key)>? pendingNotifications)
+    {
+        if (!KeysToNumbers.TryGetValue(key, out var keyNumber))
+            keyNumber = AddNewKey(key, pendingNotifications);
+
         var index = Indices.GetOrAdd(keyNumber, static _ => CreateIndexTree());
-            
+        return (keyNumber, index);
+    }
+
+    /// <summary>
+    /// Appends one line to the index. Must be called in line order, from a single
+    /// thread (the merge thread of the loading pipeline).
+    /// </summary>
+    internal void Append(IndexKeyNum keyNumber, IndexTree<int, SimpleLeaf<int>> index, int lineNumber)
+    {
+        _lineAndKeyIndex.Add(keyNumber);
         index.Add(lineNumber);
         CountIndex.Add(lineNumber, Indices);
     }
 
-    private IndexKeyNum AddNewKey(IndexKey key)
+    internal void RaiseComponentNotifications(List<(int componentNumber, IndexKey key)> notifications)
+    {
+        foreach (var (componentNumber, key) in notifications)
+            NewComponentAdded?.Invoke((componentNumber, key));
+    }
+
+    private IndexKeyNum AddNewKey(IndexKey key, List<(int componentNumber, IndexKey key)>? pendingNotifications)
     {
         var localKey = key.MakeLocalCopy();
         var keyNumber = new IndexKeyNum { KeyNum = Interlocked.Increment(ref _currentCount) };
         if (KeysToNumbers.TryAdd(localKey, keyNumber))
         {
             NumbersToKeys.TryAdd(keyNumber, localKey);
-            UpdateComponents(localKey, keyNumber);
+            UpdateComponents(localKey, keyNumber, pendingNotifications);
             return keyNumber;
         }
 
@@ -125,13 +155,19 @@ public class Indexer : IndexerBase, IComponentIndexer
         return keyNumber;
     }
 
-    private void UpdateComponents(IndexKey key, IndexKeyNum keyNumber)
+    private void UpdateComponents(IndexKey key, IndexKeyNum keyNumber,
+        List<(int componentNumber, IndexKey key)>? pendingNotifications)
     {
         for (var componentIndex = 0; componentIndex < key.ComponentCount; componentIndex++)
         {
             var registry = _components.GetOrAdd(componentIndex, static _ => new ComponentRegistry());
 
-            if (registry.TryAdd(key.GetComponent(componentIndex), keyNumber))
+            if (!registry.TryAdd(key.GetComponent(componentIndex), keyNumber))
+                continue;
+
+            if (pendingNotifications != null)
+                pendingNotifications.Add((componentIndex, key));
+            else
                 NewComponentAdded?.Invoke((componentIndex, key));
         }
     }

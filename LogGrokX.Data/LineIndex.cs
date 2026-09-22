@@ -101,6 +101,25 @@ namespace LogGrokX.Data
             }
         }
 
+        /// <summary>
+        /// Appends a batch of line starts under a single lock and returns the line
+        /// number of the first appended line.
+        /// </summary>
+        public int AddRange(ReadOnlySpan<long> lineStarts)
+        {
+            if (lineStarts.IsEmpty)
+                return Count;
+
+            lock (_lineStarts)
+            {
+                var firstLineNum = _lineStarts.Count;
+                foreach (var lineStart in lineStarts)
+                    _lineStarts.Add(lineStart);
+                Volatile.Write(ref _lineStartCount, _lineStarts.Count);
+                return firstLineNum;
+            }
+        }
+
         public int Add(long lineStart)
         {
             lock (_lineStarts)

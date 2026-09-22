@@ -18,9 +18,11 @@ public class OptimizationTests
         @"^(?<Time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[(?<Level>[A-Z]+)\] (?<Message>.*)$";
 
     [DataTestMethod]
-    [DataRow(true)]
-    [DataRow(false)]
-    public void LoadingKeepsLineOrderAndCount(bool parallel)
+    [DataRow(false, false)]
+    [DataRow(true, false)]
+    [DataRow(false, true)]
+    [DataRow(true, true)]
+    public void LoadingKeepsLineOrderAndCount(bool parallelParsing, bool parallelIndexing)
     {
         const int lineCount = 20_000;
         var meta = TestHelpers.CreateMeta(LineRegex, new[] { "Level" }, "Time", "yyyy-MM-dd HH:mm:ss.fff");
@@ -34,7 +36,8 @@ public class OptimizationTests
         }
 
         var path = TestHelpers.WriteTempFile(builder.ToString());
-        LineProcessor.ParallelParsingOverride = parallel;
+        LineProcessor.ParallelParsingOverride = parallelParsing;
+        ParsedBufferConsumer.ParallelIndexingOverride = parallelIndexing;
         try
         {
             var model = TestHelpers.LoadFile(path, meta);
@@ -57,7 +60,63 @@ public class OptimizationTests
         finally
         {
             LineProcessor.ParallelParsingOverride = null;
+            ParsedBufferConsumer.ParallelIndexingOverride = null;
             File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void ParallelIndexingProducesSameIndexesAsSequential()
+    {
+        var meta = TestHelpers.CreateMeta(LineRegex, new[] { "Level" }, "Time", "yyyy-MM-dd HH:mm:ss.fff");
+        var levels = new[] { "INFO", "WARN", "ERROR" };
+        var builder = new StringBuilder();
+        for (var i = 0; i < 30_000; i++)
+            builder.Append($"2024-01-15 08:32:11.482 [{levels[i % levels.Length]}] line {i}\r\n");
+
+        var path = TestHelpers.WriteTempFile(builder.ToString());
+        try
+        {
+            var sequential = LoadWithModes(path, meta, false, false);
+            var parallel = LoadWithModes(path, meta, true, true);
+
+            Assert.AreEqual(sequential.LineCount, parallel.LineCount);
+            foreach (var level in levels)
+            {
+                Assert.AreEqual(
+                    sequential.Indexer.GetIndexCountForComponent(0, level),
+                    parallel.Indexer.GetIndexCountForComponent(0, level),
+                    $"line count for {level} differs");
+            }
+
+            var excluded = new Dictionary<int, IEnumerable<string>> { [0] = new[] { "INFO" } };
+            for (var lineNumber = 0; lineNumber < 1000; lineNumber++)
+            {
+                Assert.AreEqual(
+                    sequential.Indexer.IsLineIncluded(lineNumber, excluded),
+                    parallel.Indexer.IsLineIncluded(lineNumber, excluded),
+                    $"filtering differs at line {lineNumber}");
+            }
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static LogModelFacade LoadWithModes(string path, LogMetaInformation meta,
+        bool parallelParsing, bool parallelIndexing)
+    {
+        LineProcessor.ParallelParsingOverride = parallelParsing;
+        ParsedBufferConsumer.ParallelIndexingOverride = parallelIndexing;
+        try
+        {
+            return TestHelpers.LoadFile(path, meta);
+        }
+        finally
+        {
+            LineProcessor.ParallelParsingOverride = null;
+            ParsedBufferConsumer.ParallelIndexingOverride = null;
         }
     }
 
