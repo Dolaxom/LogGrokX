@@ -3,6 +3,7 @@
 // The parse/index modes are selected with LOGGROKX_PARALLEL_PARSING / LOGGROKX_PARALLEL_INDEXING.
 using System;
 using System.Diagnostics;
+using System.Runtime;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -73,8 +74,12 @@ for (var run = 0; run < runs; run++)
         bestLoad = Math.Min(bestLoad, elapsed);
 }
 
-Console.WriteLine($"RESULT load: best={bestLoad} ms " +
-                  $"peakWorkingSet={Process.GetCurrentProcess().PeakWorkingSet64 / 1024 / 1024} MB");
+var peakWorkingSetMb = Process.GetCurrentProcess().PeakWorkingSet64 / 1024 / 1024;
+var retainedMb = GC.GetTotalMemory(forceFullCollection: true) / 1024 / 1024;
+var gcInfo = GC.GetGCMemoryInfo(GCKind.Any);
+Console.WriteLine($"RESULT load: best={bestLoad} ms peakWorkingSet={peakWorkingSetMb} MB " +
+                  $"retainedAfterFullGC={retainedMb} MB committedHeap={gcInfo.TotalCommittedBytes / 1024 / 1024} MB " +
+                  $"gcHeaps={GCSettings.IsServerGC switch { true => "server", false => "workstation" }}");
 
 foreach (var (name, pattern) in new[]
          {

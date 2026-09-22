@@ -24,7 +24,10 @@ namespace LogGrokX.Data
     /// </summary>
     public sealed class ParsedBufferConsumer
     {
-        private readonly BlockingCollection<Task<PreparedBuffer>> _queue;
+        // Sequential mode: raw buffers are indexed directly by the consumer thread.
+        // Parallel mode: key resolution is offloaded and results are merged in order.
+        private readonly BlockingCollection<(long startOffset, int lineCount, string buffer)>? _bufferQueue;
+        private readonly BlockingCollection<Task<PreparedBuffer>>? _preparedQueue;
 
         private readonly LineIndex _lineIndex;
         private readonly Indexer _indexer;
@@ -40,7 +43,10 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelIndexingOverride;
 
-        private const int MinProcessorCountForParallelIndexing = 3;
+        // Parallel key resolution is opt-in: measured on 4 cores it does not speed
+        // loading up (the merge thread is not the bottleneck once parsing runs in
+        // parallel) but costs extra memory. See docs/performance-notes.md.
+        private const bool ParallelIndexingDefault = false;
 
         /// <summary>
         /// <c>LOGGROKX_PARALLEL_INDEXING=0</c> disables parallel preparation,
@@ -65,33 +71,34 @@ namespace LogGrokX.Data
             _logMetaInformation = logMetaInformation;
             _stringPool = stringPool;
             _componentsCount = logMetaInformation.IndexedFieldNumbers.Length;
-            _isParallel = ParallelIndexingOverride
-                          ?? EnvironmentSwitch
-                          ?? Environment.ProcessorCount >= MinProcessorCountForParallelIndexing;
+            _isParallel = ParallelIndexingOverride ?? EnvironmentSwitch ?? ParallelIndexingDefault;
 
-            _queue = new BlockingCollection<Task<PreparedBuffer>>(
-                Math.Max(Environment.ProcessorCount, 4));
+            var capacity = Math.Max(Environment.ProcessorCount, 4);
+            if (_isParallel)
+                _preparedQueue = new BlockingCollection<Task<PreparedBuffer>>(capacity);
+            else
+                _bufferQueue = new BlockingCollection<(long, int, string)>(capacity);
 
-            _mergeTask = Task.Factory.StartNew(ConsumeBuffers, CancellationToken.None,
+            _mergeTask = Task.Factory.StartNew(
+                _isParallel ? ConsumePreparedBuffers : ConsumeBuffers, CancellationToken.None,
                 TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public void AddParsedBuffer(long bufferStartOffset, int lineCount, string parsedBuffer)
         {
             if (_isParallel)
-            {
-                _queue.Add(Task.Run(() => Prepare(bufferStartOffset, lineCount, parsedBuffer)));
-            }
+                _preparedQueue!.Add(Task.Run(() => Prepare(bufferStartOffset, lineCount, parsedBuffer)));
             else
-            {
-                _queue.Add(Task.FromResult(Prepare(bufferStartOffset, lineCount, parsedBuffer)));
-            }
+                _bufferQueue!.Add((bufferStartOffset, lineCount, parsedBuffer));
         }
 
         public void CompleteAdding(long totalBytesRead)
         {
             _totalBytesRead = totalBytesRead;
-            _queue.CompleteAdding();
+            if (_isParallel)
+                _preparedQueue!.CompleteAdding();
+            else
+                _bufferQueue!.CompleteAdding();
         }
 
         /// <summary>
@@ -125,13 +132,46 @@ namespace LogGrokX.Data
         }
 
         /// <summary>
-        /// Order-dependent part: assign line numbers and append to the indexes.
+        /// Sequential indexing: one thread walks the buffer and updates the indexes.
         /// </summary>
-        private void ConsumeBuffers()
+        private unsafe void ConsumeBuffers()
+        {
+            long lineOffset = 0;
+
+#pragma warning disable CS8619
+            foreach (var (bufferStartOffset, lineCount, buffer) in _bufferQueue!.GetConsumingEnumerable())
+#pragma warning restore CS8619
+            {
+                var metaOffset = 0;
+                fixed (char* start = buffer)
+                {
+                    for (var idx = 0; idx < lineCount; idx++)
+                    {
+                        var lineMetaInformation = LineMetaInformation.Get(start + metaOffset, _componentsCount);
+                        lineOffset = bufferStartOffset + lineMetaInformation.LineOffsetFromBufferStart;
+                        var lineNum = _lineIndex.Add(lineOffset);
+
+                        var indexKey = new IndexKey(buffer, metaOffset, _componentsCount);
+                        _indexer.Add(indexKey, lineNum);
+                        metaOffset += lineMetaInformation.TotalSizeWithPayloadCharsAligned;
+                    }
+                }
+
+                _stringPool.Return(buffer);
+            }
+
+            Finish(lineOffset);
+        }
+
+        /// <summary>
+        /// Order-dependent part of parallel indexing: assign line numbers and append
+        /// to the indexes.
+        /// </summary>
+        private void ConsumePreparedBuffers()
         {
             long lastLineOffset = 0;
 
-            foreach (var preparedTask in _queue.GetConsumingEnumerable())
+            foreach (var preparedTask in _preparedQueue!.GetConsumingEnumerable())
             {
                 var prepared = preparedTask.GetAwaiter().GetResult();
                 try
@@ -155,6 +195,11 @@ namespace LogGrokX.Data
                 }
             }
 
+            Finish(lastLineOffset);
+        }
+
+        private void Finish(long lastLineOffset)
+        {
             if (_totalBytesRead is not { } fileSize)
             {
                 throw new InvalidOperationException();

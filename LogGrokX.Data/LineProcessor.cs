@@ -20,12 +20,11 @@ namespace LogGrokX.Data
     /// every downstream index stay bit-identical to the sequential implementation.
     /// </para>
     /// <para>
-    /// The parallel path is opt-in (<c>LOGGROKX_PARALLEL_PARSING=1</c>). Measured on
-    /// 4 cores it is slower than inline parsing (705 ms vs 620 ms for 2M lines) and
-    /// needs about twice the peak working set, because the single indexing thread,
-    /// not parsing, is the bottleneck at that core count. It is kept for machines
-    /// with many cores and for further work on parallel indexing; see
-    /// docs/performance-notes.md.
+    /// The parallel path is used from 4 logical cores up (measured on 4 cores:
+    /// 493 ms vs 643 ms for 2M lines, at the cost of a higher peak working set).
+    /// Below that the indexing thread already saturates the machine, so lines are
+    /// parsed inline, without the extra chunk copy.
+    /// <c>LOGGROKX_PARALLEL_PARSING=0|1</c> overrides the decision.
     /// </para>
     /// </summary>
     public class LineProcessor : ILineDataConsumer, IDisposable
@@ -60,8 +59,15 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelParsingOverride;
 
-        private static bool IsParallelParsingEnabledByEnvironment() =>
-            Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING") is "1" or "true" or "True";
+        private const int MinProcessorCountForParallelParsing = 4;
+
+        private static bool IsParallelParsingEnabled() =>
+            Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING") switch
+            {
+                "0" or "false" or "False" => false,
+                "1" or "true" or "True" => true,
+                _ => Environment.ProcessorCount >= MinProcessorCountForParallelParsing
+            };
 
         public LineProcessor(LogFile logFile,
             LogMetaInformation metaInformation,
@@ -77,7 +83,7 @@ namespace LogGrokX.Data
             _timeIndex = timeIndex;
             _parser = parser;
 
-            _isParallel = ParallelParsingOverride ?? IsParallelParsingEnabledByEnvironment();
+            _isParallel = ParallelParsingOverride ?? IsParallelParsingEnabled();
 
             if (_isParallel)
             {
