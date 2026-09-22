@@ -7,11 +7,21 @@ Notes on the hot paths of LogGrokX and on what the core optimizations actually d
 Loading is split into three stages:
 
 1. `LoaderImpl` reads the file in 1 MB blocks and slices it into lines.
-2. `LineProcessor` decodes and parses lines. By default this happens inline, on
-   the loader thread. With `LOGGROKX_PARALLEL_PARSING=1` the lines are grouped
-   into line-aligned raw chunks (1 MB) and parsed by thread-pool workers, and a
-   dedicated merge thread applies parsed chunks **strictly in order**.
+2. `LineProcessor` decodes and parses lines. From 4 logical cores up the lines
+   are grouped into line-aligned raw chunks (1 MB) and parsed by thread-pool
+   workers, and a dedicated merge thread applies parsed chunks **strictly in
+   order**; below that they are parsed inline, on the loader thread, without the
+   extra copy. Override with `LOGGROKX_PARALLEL_PARSING=0|1`.
 3. `ParsedBufferConsumer` applies parsed buffers to `LineIndex` and `Indexer`.
+   It has two modes:
+   - sequential (default): one thread walks each buffer and updates the indexes;
+   - parallel (`LOGGROKX_PARALLEL_INDEXING=1`): workers do the order-independent
+     part (walking line meta information, hashing keys, resolving key numbers and
+     index trees, registering new component values) and a single merge thread
+     assigns line numbers and appends to the per-key trees in buffer order.
+     `Indexer.ResolveKey` / `Indexer.Append` is that split, and new-component
+     notifications are deferred to the merge thread so subscribers still see them
+     from one thread, in line order.
 
 Invariants the parallel path must preserve (covered by
 `OptimizationTests.LoadingKeepsLineOrderAndCount`, which runs both paths):
@@ -26,25 +36,42 @@ Invariants the parallel path must preserve (covered by
 `LineProcessor.ParallelParsingOverride` forces one of the two paths in tests, and
 both paths are covered by the same test.
 
-### Why parallel parsing is opt-in
+### Measurements
 
-Measured on 4 cores (AMD EPYC 7763, 2M lines / ~230 MB, best of three runs,
-Server GC):
+4 cores (AMD EPYC 7763, GitHub runner), 2M lines / ~230 MB, Server GC, best of
+three runs after a warm-up run:
 
-| | inline (default) | parallel |
+| configuration | load + index | peak working set |
 | --- | --- | --- |
-| load + index | 620 ms | 705 ms |
-| peak working set | 115 MB | 248 MB |
+| `master` | 621 ms | 114 MB |
+| branch, sequential parse + sequential index | 753 ms | 221 MB |
+| branch, sequential parse + parallel index | 656 ms | 242 MB |
+| branch, parallel parse + parallel index | 476 ms | 246 MB |
+| **branch, parallel parse + sequential index (default)** | **494 ms** | 238 MB |
 
-Parsing is not the bottleneck at this core count: `ParsedBufferConsumer` applies
-parsed lines to `LineIndex` and `Indexer` on a single thread, so making parsing
-faster only moves the queue. The parallel path also pays for one extra copy of
-the raw bytes and keeps a whole chunk of parsed buffers alive before merging.
+Search on the same file (best of three):
 
-To get an actual win, indexing has to be parallelized as well (per-chunk local
-indexes merged in order), which is the natural follow-up. Until then the path is
-kept behind the environment variable so it can be measured on machines with many
-cores without affecting anyone.
+| pattern | `master` | branch |
+| --- | --- | --- |
+| rare literal (1 hit) | 123 ms | 160 ms |
+| literal absent | 118 ms | 50 ms |
+| regex, 400k hits | 165 ms | 103 ms |
+
+Conclusions:
+
+- parallel **parsing** pays off: 494 ms vs 621 ms (1.26x), so it is on by default
+  from 4 cores up;
+- parallel **indexing** does not: once parsing is parallel it changes nothing
+  (476 ms vs 494 ms, within run-to-run noise) and it costs extra memory, so it
+  stays opt-in. What is left on the merge thread is cheap (one array append, one
+  `List.Add` per line); the remaining serial cost is the appends themselves,
+  which would need per-key partitioning to spread;
+- the sequential-parse configuration on the runner is slower than `master`
+  (753 ms vs 621 ms) while being on par locally on 2 cores (732 ms vs 734 ms),
+  so that gap is not yet explained and is worth re-measuring on real hardware;
+- the search prefilter loses a little when the literal is present but rare
+  (160 ms vs 123 ms: the chunk is scanned for the literal and then decoded
+  anyway) and wins clearly otherwise.
 
 ## Indexing
 
