@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using LogGrokX.Data.Index;
 using LogGrokX.Data.Monikers;
@@ -27,7 +28,8 @@ namespace LogGrokX.Data
             _indexer = indexer;
             _logMetaInformation = logMetaInformation;
             _stringPool = stringPool;
-            Task.Factory.StartNew(ConsumeBuffers);
+            Task.Factory.StartNew(ConsumeBuffers, CancellationToken.None,
+                TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public void AddParsedBuffer(long bufferStartOffset, int lineCount, string parsedBuffer)
