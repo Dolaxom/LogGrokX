@@ -7,11 +7,10 @@ Notes on the hot paths of LogGrokX and on what the core optimizations actually d
 Loading is split into three stages:
 
 1. `LoaderImpl` reads the file in 1 MB blocks and slices it into lines.
-2. `LineProcessor` decodes and parses lines. On machines with 4 or more logical
-   cores the lines are grouped into line-aligned raw chunks (1 MB) and parsed by
-   thread-pool workers; a dedicated merge thread applies parsed chunks **strictly
-   in order**. On 1-3 cores the lines are parsed inline, without the extra copy,
-   because the indexing thread already saturates the second core there.
+2. `LineProcessor` decodes and parses lines. By default this happens inline, on
+   the loader thread. With `LOGGROKX_PARALLEL_PARSING=1` the lines are grouped
+   into line-aligned raw chunks (1 MB) and parsed by thread-pool workers, and a
+   dedicated merge thread applies parsed chunks **strictly in order**.
 3. `ParsedBufferConsumer` applies parsed buffers to `LineIndex` and `Indexer`.
 
 Invariants the parallel path must preserve (covered by
@@ -24,7 +23,28 @@ Invariants the parallel path must preserve (covered by
   passed to `ParsedBufferConsumer.AddParsedBuffer`, so chunks must start at a
   line boundary.
 
-`LineProcessor.ParallelParsingOverride` forces one of the two paths in tests.
+`LineProcessor.ParallelParsingOverride` forces one of the two paths in tests, and
+both paths are covered by the same test.
+
+### Why parallel parsing is opt-in
+
+Measured on 4 cores (AMD EPYC 7763, 2M lines / ~230 MB, best of three runs,
+Server GC):
+
+| | inline (default) | parallel |
+| --- | --- | --- |
+| load + index | 620 ms | 705 ms |
+| peak working set | 115 MB | 248 MB |
+
+Parsing is not the bottleneck at this core count: `ParsedBufferConsumer` applies
+parsed lines to `LineIndex` and `Indexer` on a single thread, so making parsing
+faster only moves the queue. The parallel path also pays for one extra copy of
+the raw bytes and keeps a whole chunk of parsed buffers alive before merging.
+
+To get an actual win, indexing has to be parallelized as well (per-chunk local
+indexes merged in order), which is the natural follow-up. Until then the path is
+kept behind the environment variable so it can be measured on machines with many
+cores without affecting anyone.
 
 ## Indexing
 

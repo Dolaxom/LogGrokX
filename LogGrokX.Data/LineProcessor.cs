@@ -20,16 +20,18 @@ namespace LogGrokX.Data
     /// every downstream index stay bit-identical to the sequential implementation.
     /// </para>
     /// <para>
-    /// On machines with very few cores the parallel path cannot win (the indexing
-    /// thread already saturates the second core), so there the lines are parsed
-    /// inline, without the extra chunk copy.
+    /// The parallel path is opt-in (<c>LOGGROKX_PARALLEL_PARSING=1</c>). Measured on
+    /// 4 cores it is slower than inline parsing (705 ms vs 620 ms for 2M lines) and
+    /// needs about twice the peak working set, because the single indexing thread,
+    /// not parsing, is the bottleneck at that core count. It is kept for machines
+    /// with many cores and for further work on parallel indexing; see
+    /// docs/performance-notes.md.
     /// </para>
     /// </summary>
     public class LineProcessor : ILineDataConsumer, IDisposable
     {
         private const int InitialBufferSize = 64 * 1024;
         private const int RawChunkSizeBytes = 1024 * 1024;
-        private const int MinProcessorCountForParallelParsing = 4;
         private const int ExactCharCountThreshold = 8 * 1024;
 
         private readonly StringPool _stringPool;
@@ -58,6 +60,12 @@ namespace LogGrokX.Data
         /// </summary>
         internal static bool? ParallelParsingOverride;
 
+        private static bool IsParallelParsingEnabledByEnvironment()
+        {
+            var value = Environment.GetEnvironmentVariable("LOGGROKX_PARALLEL_PARSING");
+            return value is "1" or "true" or "True";
+        }
+
         public LineProcessor(LogFile logFile,
             LogMetaInformation metaInformation,
             ILineParser parser,
@@ -72,8 +80,7 @@ namespace LogGrokX.Data
             _timeIndex = timeIndex;
             _parser = parser;
 
-            _isParallel = ParallelParsingOverride
-                          ?? Environment.ProcessorCount >= MinProcessorCountForParallelParsing;
+            _isParallel = ParallelParsingOverride ?? IsParallelParsingEnabledByEnvironment();
 
             if (_isParallel)
             {

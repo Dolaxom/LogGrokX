@@ -53,8 +53,8 @@ loading (`LoaderBenchmark`), end-to-end loading and indexing
 (`IndexingPipelineBenchmark`), the search hot loop (`SearchBenchmark`) and the
 merge core (`MergeBenchmark`: `MergedLineOrder.Build`,
 `MergedLineOrder.BuildTimeIndex`, `TimeIndex.FindLineRange`).
-Hot-path design notes and the invariants the parallel loader must preserve are
-in `docs/performance-notes.md`.
+Hot-path design notes, measurements and the invariants the (opt-in) parallel
+loader must preserve are in `docs/performance-notes.md`.
 
 The UI layer uses **WPF-UI 4.3.0** (Fluent controls/theming) and
 **AvalonDock 5** for docking. Branding/window title is **LogGrokX** plus the
